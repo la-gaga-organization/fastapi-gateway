@@ -2,7 +2,7 @@ from pydantic_settings import SettingsConfigDict, BaseSettings
 
 
 class Settings(BaseSettings):
-    SERVICE_NAME: str = "Template FastAPI"
+    SERVICE_NAME: str = "FastAPI Gateway"
     SERVICE_VERSION: str = "0.1.0"
     DATABASE_URL: str = "sqlite:///./database.db"
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"

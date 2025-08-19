@@ -37,4 +37,4 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 @app.get("/health", tags=["health"])
 def health():
-    return {"status": "ok", "service": settings.PROJECT_NAME}
+    return {"status": "ok", "service": settings.SERVICE_NAME}
