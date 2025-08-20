@@ -41,16 +41,16 @@ class InvalidTokenException(Exception):
     pass
 
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now() + timedelta(minutes=expire_minutes)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, private_key, algorithm=ALGORITHM)
 
 
-def create_refresh_token(data: dict):
+def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_TOKEN_EXPIRE_DAYS):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now() + timedelta(days=expire_days)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, private_key, algorithm=ALGORITHM)
 
@@ -122,20 +122,24 @@ def refresh_token(refresh_token: str):
     session = db.query(Session).filter(Session.id == db_old_refresh_token.session_id).first()
     if not session or not session.is_active:
         raise InvalidTokenException("Session is inactive or does not exist")
+    if session.is_blocked:
+        raise InvalidTokenException("Session is blocked")
     if session.expires_at < datetime.now():
         raise InvalidTokenException("Session expired")
 
     if db_old_refresh_token.is_expired:
         session.is_active = False
+        session.is_blocked = True
         db.commit()
         db.refresh(session)
-        raise InvalidTokenException("Refresh token expired")
+        raise InvalidTokenException("Refresh token expired, Session blocked")
 
     access_token = create_access_token(
         {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id})
     refresh_token = create_refresh_token(
-        {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id})
-
+        {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id},
+        expire_days=(
+                session.expires_at - datetime.now()).days)  # Scadenza del refresh token uguale a quella della sessione
     # Segno i vecchi token come scaduti
     db_old_refresh_token.is_expired = True
     db.commit()
@@ -160,3 +164,22 @@ def refresh_token(refresh_token: str):
     db.refresh(db_refresh_token)
 
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+def logout(session_id: int):
+    db = next(get_db())
+    session = db.query(Session).filter(Session.id == session_id).first()
+    if not session:
+        raise InvalidSessionException("Session does not exist")
+
+    # Segno la sessione come non attiva
+    session.is_active = False
+    db.commit()
+    db.refresh(session)
+
+    # Segno tutti i token associati alla sessione come scaduti
+    db.query(AccessToken).filter(AccessToken.session_id == session_id).update({"is_expired": True})
+    db.query(RefreshToken).filter(RefreshToken.session_id == session_id).update({"is_expired": True})
+    db.commit()
+
+    return {"detail": "Logout successful"}
