@@ -3,20 +3,19 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import String, DateTime, Integer, func
+from sqlalchemy import DateTime, Integer, func, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
-class User(Base):
-    __tablename__ = "users"
+class Session(Base):
+    __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    username: Mapped[str] = mapped_column(String(80), index=True)
-    email: Mapped[str] = mapped_column(String(255), index=True)
-    hashed_password: Mapped[str] = mapped_column(String(255))
-
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -24,4 +23,5 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    sessions: Mapped[List["Session"]] = relationship("Session", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
+    user: Mapped["User"] = relationship("User", back_populates="sessions")  # noqa: F821
+    tokens: Mapped[List["Token"]] = relationship("Token", back_populates="session")  # noqa: F821

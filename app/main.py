@@ -9,6 +9,9 @@ from fastapi.responses import ORJSONResponse
 from app.api.v1.routes import auth
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.db.base import import_models
+
+import_models() # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 
 sentry_sdk.init(
     dsn=settings.SENTRY_DSN,

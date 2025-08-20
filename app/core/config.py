@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     SENTRY_RELEASE: str = "0.1.0"
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30 giorni
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     PRIVATE_KEY: str = "./certs/private.pem"
     PUBLIC_KEY: str = "./certs/public.pem"
 

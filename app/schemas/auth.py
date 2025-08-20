@@ -21,10 +21,6 @@ class UserOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-        orm_mode = True  # Enable ORM mode for compatibility with SQLAlchemy models
-
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
