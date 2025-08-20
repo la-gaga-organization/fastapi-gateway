@@ -1,5 +1,5 @@
 [project]
-name = "FastAPI Gateway"
+name = "FastAPI-Gateway"
 version = "0.1.0"
 description = "Gateway service"
 authors = [
