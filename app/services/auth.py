@@ -116,14 +116,20 @@ def refresh_token(refresh_token: str):
 
     db = next(get_db())
     db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).join(AccessToken).first()
-    if not db_old_refresh_token or db_old_refresh_token.is_expired:
-        raise InvalidTokenException("Refresh token expired or invalid")
+    if not db_old_refresh_token:
+        raise InvalidTokenException("Refresh token invalid")
 
     session = db.query(Session).filter(Session.id == db_old_refresh_token.session_id).first()
     if not session or not session.is_active:
         raise InvalidTokenException("Session is inactive or does not exist")
     if session.expires_at < datetime.now():
         raise InvalidTokenException("Session expired")
+
+    if db_old_refresh_token.is_expired:
+        session.is_active = False
+        db.commit()
+        db.refresh(session)
+        raise InvalidTokenException("Refresh token expired")
 
     access_token = create_access_token(
         {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id})
