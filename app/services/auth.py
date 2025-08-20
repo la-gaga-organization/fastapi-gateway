@@ -5,8 +5,9 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.db.session import get_db
+from app.models.accessToken import AccessToken
+from app.models.refreshToken import RefreshToken
 from app.models.session import Session
-from app.models.token import Token
 from app.models.user import User
 from app.schemas.auth import UserLogin
 
@@ -27,6 +28,16 @@ ALGORITHM = "RS256"
 
 # Custom exception per invalid credentials
 class InvalidCredentialsException(Exception):
+    pass
+
+
+# Custom exception per invalid session
+class InvalidSessionException(Exception):
+    pass
+
+
+# Custom exception per invalid token
+class InvalidTokenException(Exception):
     pass
 
 
@@ -62,8 +73,6 @@ def login(user_login: UserLogin):
         user = db.query(User).filter(User.username == user_login.username).first()
         if not user or not verify_password(user_login.password, str(user.hashed_password)):
             raise InvalidCredentialsException("Invalid credentials")
-        access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
-        refresh_token = create_refresh_token(data={"sub": user.username, "user_id": user.id})
 
         db_session = Session(
             user_id=user.id,
@@ -72,18 +81,22 @@ def login(user_login: UserLogin):
         db.add(db_session)
         db.commit()
         db.refresh(db_session)
-        db_access_token = Token(
+
+        access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})
+        refresh_token = create_refresh_token(
+            data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})
+
+        db_access_token = AccessToken(
             session_id=db_session.id,
-            token=access_token,
-            token_type="access"
+            token=access_token
         )
         db.add(db_access_token)
         db.commit()
         db.refresh(db_access_token)
-        db_refresh_token = Token(
+        db_refresh_token = RefreshToken(
             session_id=db_session.id,
             token=refresh_token,
-            token_type="refresh"
+            accessToken_id=db_access_token.id
         )
         db.add(db_refresh_token)
         db.commit()
@@ -94,3 +107,50 @@ def login(user_login: UserLogin):
     except Exception as e:
         print(e)
         raise Exception("Internal server error") from e
+
+
+def refresh_token(refresh_token: str):
+    payload = verify_token(refresh_token)
+    if not payload or "sub" not in payload:
+        raise InvalidTokenException("Invalid refresh token")
+
+    db = next(get_db())
+    db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).join(AccessToken).first()
+    if not db_old_refresh_token or db_old_refresh_token.is_expired:
+        raise InvalidTokenException("Refresh token expired or invalid")
+
+    session = db.query(Session).filter(Session.id == db_old_refresh_token.session_id).first()
+    if not session or not session.is_active:
+        raise InvalidTokenException("Session is inactive or does not exist")
+    if session.expires_at < datetime.now():
+        raise InvalidTokenException("Session expired")
+
+    access_token = create_access_token(
+        {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id})
+    refresh_token = create_refresh_token(
+        {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id})
+
+    # Segno i vecchi token come scaduti
+    db_old_refresh_token.is_expired = True
+    db.commit()
+    db.refresh(db_old_refresh_token)
+    db_old_refresh_token.accessToken.is_expired = True
+
+    # Creo nuovi token
+    db_access_token = AccessToken(
+        session_id=session.id,
+        token=access_token,
+    )
+    db.add(db_access_token)
+    db.commit()
+    db.refresh(db_access_token)
+    db_refresh_token = RefreshToken(
+        session_id=session.id,
+        token=refresh_token,
+        accessToken_id=db_access_token.id
+    )
+    db.add(db_refresh_token)
+    db.commit()
+    db.refresh(db_refresh_token)
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}

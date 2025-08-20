@@ -24,4 +24,5 @@ class Session(Base):
     )
 
     user: Mapped["User"] = relationship("User", back_populates="sessions")  # noqa: F821
-    tokens: Mapped[List["Token"]] = relationship("Token", back_populates="session")  # noqa: F821
+    refreshTokens: Mapped[List["RefreshToken"]] = relationship("RefreshToken", back_populates="session")  # noqa: F821
+    accessTokens: Mapped[List["AccessToken"]] = relationship("AccessToken", back_populates="session")  # noqa: F821

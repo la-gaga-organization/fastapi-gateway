@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.auth import UserLogin, TokenResponse
@@ -27,17 +25,12 @@ def login(user: UserLogin):
 
 @router.post("/refresh", response_model=TokenResponse)
 def post_refresh_token(refresh_token: str):
-    # payload = verify_token(refresh_token)
-    # if payload:
-    #
-    #     if "sub" not in payload:
-    #         raise Exception("Invalid refresh token")
-    #     if payload["exp"] < datetime.now().timestamp():
-    #         raise Exception("Refresh token expired")
-    #
-    #     access_token = create_access_token({"sub": payload["sub"]})
-    #     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
-    return None
+    try:
+        return auth.refresh_token(refresh_token)
+    except auth.InvalidTokenException as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except auth.InvalidSessionException as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 
 def logout():
