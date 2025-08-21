@@ -128,10 +128,16 @@ def refresh_token(refresh_token: str):
         raise InvalidTokenException("Session expired")
 
     if db_old_refresh_token.is_expired:
+        # segno la sessione come non attiva e bloccata, perché è stato riusato un token già usato
         session.is_active = False
         session.is_blocked = True
         db.commit()
         db.refresh(session)
+        # segno tutti i token associati alla sessione come scaduti
+        db.query(AccessToken).filter(AccessToken.session_id == session.id).update({"is_expired": True})
+        db.query(RefreshToken).filter(RefreshToken.session_id == session.id).update({"is_expired": True})
+        db.commit()
+        
         raise InvalidTokenException("Refresh token expired, Session blocked")
 
     access_token = create_access_token(
