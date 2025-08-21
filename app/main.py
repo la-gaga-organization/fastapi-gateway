@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.base import import_models
 
-import_models() # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
+import_models()  # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 
 sentry_sdk.init(
     dsn=settings.SENTRY_DSN,
@@ -33,6 +33,10 @@ app = FastAPI(
     lifespan=lifespan,
 
 )
+if settings.ENVIRONMENT == "production":
+    app = FastAPI(docs_url=None, redoc_url=None)  # nascondo la documentazione
+else:
+    app = FastAPI(docs_url="/docs", redoc_url="/redoc")
 
 # Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])

@@ -10,12 +10,9 @@ from app.services.auth import InvalidCredentialsException
 router = APIRouter()
 
 
-# TODO: sposto la logica di business in un service separato, implemento il db per il refresh token e gestisco la scadenza dei token, aggiungo la gestione degli errori
-# TODO: implemento la logica di logout per invalidare i token
-# TODO: implermento la logica della rotazione dei refresh token, aggiungo inoltre il controllo e revoca totale per refresh token  scaduti
-# TODO: considero l'idea della rotazione dei secrets
-# TODO: controllo che funzionino i due token separati e tutto il resto.
-
+# TODO: aggiungo la gestione degli errori
+# TODO: modifico la gestione delle chiavi per rotazione dei secrets esterna
+# TODO: implemento creazione utente e modifica password (passando dal servizio dedicato)
 @router.post("/login", response_model=TokenResponse)
 def login(user: UserLogin):
     try:
