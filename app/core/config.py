@@ -5,7 +5,6 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "FastAPI Gateway"
     SERVICE_VERSION: str = "0.1.0"
     DATABASE_URL: str = "sqlite:///./database.db"
-    SYNC_DATABASE_URL: str = "sqlite:///./sync_database.db"
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
     SERVICE_PORT: int = 8000
     USERS_SERVICE_URL: str = "http://users:8000"
