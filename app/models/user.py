@@ -24,4 +24,5 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    sessions: Mapped[List["Session"]] = relationship("Session", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
+    sessions: Mapped[List["Session"]] = relationship("Session", back_populates="user",  # noqa: F821
+                                                     cascade="all, delete-orphan")

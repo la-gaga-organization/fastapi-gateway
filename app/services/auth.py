@@ -137,7 +137,7 @@ def refresh_token(refresh_token: str):
         db.query(AccessToken).filter(AccessToken.session_id == session.id).update({"is_expired": True})
         db.query(RefreshToken).filter(RefreshToken.session_id == session.id).update({"is_expired": True})
         db.commit()
-        
+
         raise InvalidTokenException("Refresh token expired, Session blocked")
 
     access_token = create_access_token(
