@@ -11,10 +11,12 @@ FROM python:3.11-slim
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 COPY --from=builder /usr/local /usr/local
-COPY app /app/app
-COPY alembic.ini /app/alembic.ini
-COPY .env /app/.env
-COPY certs /app/certs
+#COPY app /app/app
+#COPY alembic.ini /app/alembic.ini
+#COPY .env /app/.env # non utilizzabile perché in docker compose il file non esiste, quindi fallisce
+#COPY certs /app/certs
+
+COPY . /app
 
 EXPOSE ${SERVICE_PORT:-8000}
 
