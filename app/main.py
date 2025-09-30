@@ -47,7 +47,8 @@ current_router.include_router(
     router=auth.router,
 )
 
-app.include_router(current_router, prefix=settings.API_PREFIX)
+app.include_router(current_router, prefix="/api/v1")
+
 
 @app.get("/health", tags=["health"])
 def health():
