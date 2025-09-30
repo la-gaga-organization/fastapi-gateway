@@ -6,7 +6,6 @@ import sentry_sdk
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from app.api.v1.routes import auth
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.base import import_models
@@ -14,9 +13,9 @@ from app.db.base import import_models
 import_models()  # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 
 sentry_sdk.init(
-    dsn=settings.SENTRY_DSN,
+    dsn=settings.GATEWAY_SENTRY_DSN,
     send_default_pii=True,
-    release=settings.SENTRY_RELEASE,
+    release=settings.GATEWAY_SENTRY_RELEASE,
 )
 
 
@@ -27,21 +26,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.SERVICE_NAME,
+    title=settings.GATEWAY_SERVICE_NAME,
     default_response_class=ORJSONResponse,
-    version=settings.SERVICE_VERSION,
+    version=settings.GATEWAY_SERVICE_VERSION,
     lifespan=lifespan,
 
 )
-if settings.ENVIRONMENT == "production":
+if settings.GATEWAY_ENVIRONMENT == "production":
     app = FastAPI(docs_url=None, redoc_url=None)  # nascondo la documentazione
 else:
     app = FastAPI(docs_url="/docs", redoc_url="/redoc")
 
 # Routers
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 
 @app.get("/health", tags=["health"])
 def health():
-    return {"status": "ok", "service": settings.SERVICE_NAME}
+    return {"status": "ok", "service": settings.GATEWAY_SERVICE_NAME}

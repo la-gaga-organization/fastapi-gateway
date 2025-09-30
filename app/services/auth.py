@@ -14,8 +14,8 @@ from app.schemas.auth import UserLogin
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Carico le chiavi
-PRIVATE_KEY = settings.PRIVATE_KEY
-PUBLIC_KEY = settings.PUBLIC_KEY
+PRIVATE_KEY = settings.GATEWAY_PRIVATE_KEY
+PUBLIC_KEY = settings.GATEWAY_PUBLIC_KEY
 
 with open(PRIVATE_KEY, "r") as f:
     private_key = f.read()

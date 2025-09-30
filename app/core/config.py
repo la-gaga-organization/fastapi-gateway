@@ -14,8 +14,6 @@ class Settings(BaseSettings):
 
     GATEWAY_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     GATEWAY_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
-    GATEWAY_PRIVATE_KEY: str = "./certs/private.pem"
-    GATEWAY_PUBLIC_KEY: str = "./certs/public.pem"
 
     model_config = SettingsConfigDict(env_file=".env")
 
