@@ -18,9 +18,12 @@ router = APIRouter()
 async def login(user: UserLogin):
     try:
         access_token = await create_access_token(data={"username": "gaga", "user_id": "1", "session_id": "1"}, expire_minutes=60)
-        return {"access_token": access_token, "refresh_token": "fake-refresh-token", "token_type": "bearer"}
+        return TokenResponse(
+            token=access_token,
+            token_type="bearer",
+        )
     except HttpClientException as e:
-        raise e
+        raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
 
 @router.post("/refresh", response_model=TokenResponse)
 def post_refresh_token(refresh_token: str):

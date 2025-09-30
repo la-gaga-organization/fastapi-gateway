@@ -44,9 +44,8 @@ async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_
     try:
         params = HttpParams(data)
         if expire_minutes:
-            expire = datetime.now() + timedelta(minutes=expire_minutes)
-            params.add_param("expires_in", expire.isoformat())
-            
+            params.add_param("expires_in", expire_minutes)
+
         response = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
             method=HttpMethod.POST,
@@ -73,8 +72,7 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
     try:
         params = HttpParams(data)
         if expire_days:
-            expire = datetime.now() + timedelta(days=expire_days)
-            params.add_param("expires_in", expire.isoformat())
+            params.add_param("expires_in", expire_days * 24 * 60)  # Converti giorni in minuti
             
         response = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
