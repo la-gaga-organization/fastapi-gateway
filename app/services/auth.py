@@ -9,7 +9,7 @@ from app.models.accessToken import AccessToken
 from app.models.refreshToken import RefreshToken
 from app.models.session import Session
 from app.models.user import User
-from app.schemas.auth import UserLogin, TokenResponse
+from app.schemas.auth import UserLogin, TokenResponse, TokenRequest
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
 from app.core.logging import get_logger
 
@@ -20,21 +20,33 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Custom exception per invalid credentials
 class InvalidCredentialsException(HttpClientException):
     def __init__(self, message: str):
-        super().__init__("Unauthorized", message, 401, "/login")
+        self.message = "Unauthorized"
+        self.status_code = 401
+        self.url = "/login"
+        self.server_message = message
+        # super().__init__("Unauthorized", message, 401, "/login")
     pass
 
 
 # Custom exception per invalid session
 class InvalidSessionException(HttpClientException):
     def __init__(self, message: str):
-        super().__init__("Forbidden", message, 403, "/logout")
+        self.message = "Forbidden"
+        self.status_code = 403
+        self.url = "/logout"
+        self.server_message = message
+        # super().__init__("Forbidden", message, 403, "/logout")
     pass
 
 
 # Custom exception per invalid token
 class InvalidTokenException(HttpClientException):
     def __init__(self, message: str):
-        super().__init__("Unauthorized", message, 401, "/token/verify")
+        self.message = "Unauthorized"
+        self.status_code = 401
+        self.url = "/token/verify"
+        self.server_message = message
+        # super().__init__("Unauthorized", message, 401, "/token/verify")
     pass
 
 async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES) -> dict:
@@ -156,13 +168,13 @@ async def login(user_login: UserLogin):
         raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", status_code=500, url="/login")
 
 
-async def refresh_token(refresh_token: str) -> TokenResponse:
-    payload = await verify_token(refresh_token)
+async def refresh_token(refresh_token: TokenRequest) -> TokenResponse:
+    payload = await verify_token(refresh_token.token)
     if not payload or not payload["verified"]:
         raise InvalidTokenException("Invalid refresh token")
 
     db = next(get_db())
-    db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).join(AccessToken).first()
+    db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token.token).join(AccessToken).first()
     if not db_old_refresh_token:
         raise InvalidTokenException("Refresh token not found")
 
@@ -221,9 +233,16 @@ async def refresh_token(refresh_token: str) -> TokenResponse:
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-def logout(session_id: int):
+async def logout(access_token: TokenRequest):
+    payload = await verify_token(access_token.token)
+    if not payload or not payload["verified"]:
+        raise InvalidTokenException("Invalid access token")
+    
+    if payload["expired"]:
+        raise InvalidTokenException("Access token expired")
+    
     db = next(get_db())
-    session = db.query(Session).filter(Session.id == session_id).first()
+    session = db.query(Session).filter(Session.id == payload["session_id"]).first()
     if not session:
         raise InvalidSessionException("Session does not exist")
 
@@ -233,8 +252,8 @@ def logout(session_id: int):
     db.refresh(session)
 
     # Segno tutti i token associati alla sessione come scaduti
-    db.query(AccessToken).filter(AccessToken.session_id == session_id).update({"is_expired": True})
-    db.query(RefreshToken).filter(RefreshToken.session_id == session_id).update({"is_expired": True})
+    db.query(AccessToken).filter(AccessToken.session_id == session.id).update({"is_expired": True})
+    db.query(RefreshToken).filter(RefreshToken.session_id == session.id).update({"is_expired": True})
     db.commit()
 
     return {"detail": "Logout successful"}

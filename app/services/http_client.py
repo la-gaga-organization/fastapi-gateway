@@ -93,6 +93,7 @@ class HttpClientException(Exception):
 
     def __init__(self, message: str, server_message: str, status_code: int, url: str = None):
         super().__init__(message)
+        self.message = message
         self.status_code = status_code
         self.server_message = server_message
         self.url = url
