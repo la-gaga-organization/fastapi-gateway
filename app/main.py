@@ -13,9 +13,9 @@ from app.db.base import import_models
 import_models()  # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 
 sentry_sdk.init(
-    dsn=settings.GATEWAY_SENTRY_DSN,
+    dsn=settings.SENTRY_DSN,
     send_default_pii=True,
-    release=settings.GATEWAY_SENTRY_RELEASE,
+    release=settings.SENTRY_RELEASE,
 )
 
 
@@ -26,13 +26,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.GATEWAY_SERVICE_NAME,
+    title=settings.SERVICE_NAME,
     default_response_class=ORJSONResponse,
-    version=settings.GATEWAY_SERVICE_VERSION,
+    version=settings.SERVICE_VERSION,
     lifespan=lifespan,
 
 )
-if settings.GATEWAY_ENVIRONMENT == "production":
+if settings.ENVIRONMENT == "production":
     app = FastAPI(docs_url=None, redoc_url=None)  # nascondo la documentazione
 else:
     app = FastAPI(docs_url="/docs", redoc_url="/redoc")
@@ -42,4 +42,4 @@ else:
 
 @app.get("/health", tags=["health"])
 def health():
-    return {"status": "ok", "service": settings.GATEWAY_SERVICE_NAME}
+    return {"status": "ok", "service": settings.SERVICE_NAME}
