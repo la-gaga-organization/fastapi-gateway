@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.responses import ORJSONResponse
 
 from app.api.v1.routes import auth
@@ -39,11 +39,15 @@ else:
     app = FastAPI(docs_url="/docs", redoc_url="/redoc")
 
 # Routers
-app.include_router(
+current_router = APIRouter()
+
+current_router.include_router(
     prefix="/auth",
     tags=["auth"],
     router=auth.router,
 )
+
+app.include_router(current_router, prefix=settings.API_PREFIX)
 
 @app.get("/health", tags=["health"])
 def health():

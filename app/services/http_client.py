@@ -5,27 +5,34 @@ import httpx
 from app.core.config import settings
 
 # Classi e Enum per gestire richieste HTTP in modo strutturato
+API_PREFIX = settings.API_PREFIX
+
+
 class HttpMethod(str, Enum):
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
     DELETE = "DELETE"
     PATCH = "PATCH"
-    
+
+
 class HttpUrl(str, Enum):
-    AUTH_SERVICE = settings.AUTH_SERVICE_URL + ":" + str(settings.AUTH_SERVICE_PORT)
-    
+    TOKEN_SERVICE = settings.TOKEN_SERVICE_URL
+    USERS_SERVICE = settings.USERS_SERVICE_URL
+
+
 class HttpParams():
     """Rappresenta i parametri di una richiesta HTTP.
     Attributes:
         params (dict): Dizionario dei parametri della query.
     """
+
     def __init__(self):
         self.params = {}
-        
+
     def __init__(self, initial_params: dict):
         self.params = initial_params.copy()
-        
+
     def add_param(self, key: str, value: str):
         """Aggiunge un parametro alla query della richiesta HTTP.
         Args:
@@ -40,12 +47,14 @@ class HttpParams():
             dict: Dizionario dei parametri della query.
         """
         return self.params
-    
+
+
 class HttpHeaders():
     """Rappresenta gli headers di una richiesta HTTP.
     Attributes:
         headers (dict): Dizionario degli headers HTTP.
     """
+
     def __init__(self):
         self.headers = {
             "Content-Type": "application/json",
@@ -73,8 +82,10 @@ class HttpHeaders():
             dict: Dizionario degli headers HTTP.
         """
         return self.headers
-    
+
 # Errori e risposte
+
+
 class HttpClientException(Exception):
     """Eccezione personalizzata per errori nelle richieste HTTP.
     Attributes:
@@ -82,11 +93,13 @@ class HttpClientException(Exception):
         server_message (str): Messaggio di errore restituito dal server.
         url (str): URL della richiesta che ha causato l'errore.
     """
+
     def __init__(self, message: str, server_message: str, url: str, status_code: int = None):
         super().__init__(message)
         self.status_code = status_code
         self.server_message = server_message
         self.url = url
+
 
 class HttpClientResponse():
     """Rappresenta la risposta di un client HTTP.
@@ -94,6 +107,7 @@ class HttpClientResponse():
         status_code (int): Codice di stato HTTP della risposta.
         data (dict | list | str | None): Dati della risposta, se presenti.
     """
+
     def __init__(self, status_code: int, data: dict | list | str | None = None):
         self.status_code = status_code
         self.data = data
@@ -101,7 +115,7 @@ class HttpClientResponse():
 
 async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None, _headers: HttpHeaders = None) -> HttpClientResponse:
     """Gestisce la risposta della richiesta HTTP.
-    
+
     Ritorna HttpClientResponse o solleva HttpClientException in caso di errore.
     Utilizza httpx.AsyncClient per le richieste asincrone.
 
@@ -111,48 +125,38 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
         endpoint (str): Endpoint specifico del servizio.
         _params (HttpParams, optional): Parametri della query. Defaults to None.
         _headers (HttpHeaders, optional): Headers della richiesta. Defaults to None.
-        
+
     Raises:
         HttpClientException: In caso di errore nella richiesta HTTP.
     Returns:
         HttpClientResponse: Risposta della richiesta HTTP.
     """
-    
-    url = f"{url}{endpoint}"
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        headers = _headers.to_dict() if _headers else HttpHeaders().to_dict()
-        params = _params.to_dict() if _params else HttpParams().to_dict()
 
-        match method:
-            case HttpMethod.GET:
-                resp = await client.get(url, headers=headers, params=params)
-            case HttpMethod.POST:
-                resp = await client.post(url, headers=headers, params=params)
-            case HttpMethod.PUT:
-                resp = await client.put(url, headers=headers, params=params)
-            case HttpMethod.DELETE:
-                resp = await client.delete(url, headers=headers, params=params)
-            case HttpMethod.PATCH:
-                resp = await client.patch(url, headers=headers, params=params)
-            case _:
-                raise ValueError(f"Unsupported HTTP method: {method}")
-        
+    url = f"{url.value}{API_PREFIX}{endpoint}"
+    print(f"Sending {method} request to {url} with params {_params.to_dict()} and headers {_headers}")
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        headers = _headers.to_dict() if _headers else {}
+        params = _params.to_dict() if _params else {}
+
+        try:
+            match method:
+                case HttpMethod.GET:
+                    resp = await client.get(url, headers=headers, params=params)
+                case HttpMethod.POST:
+                    resp = await client.post(url, headers=headers, data=params)
+                case HttpMethod.PUT:
+                    resp = await client.put(url, headers=headers, data=params)
+                case HttpMethod.DELETE:
+                    resp = await client.delete(url, headers=headers, data=params)
+                case HttpMethod.PATCH:
+                    resp = await client.patch(url, headers=headers, data=params)
+                case _:
+                    raise ValueError(f"Unsupported HTTP method: {method}")
+        except httpx.RequestError as e:
+            raise HttpClientException(f"Request error: {str(e)}", server_message=str(e), url=url, status_code=None)
+
         if resp.status_code >= 400:
-            raise HttpClientException(f"Couldn't complete the request", server_message=resp.text, url=url, status_code=resp.status_code)
+            raise HttpClientException(f"Couldn't complete the request", server_message=resp.text,
+                                      url=url, status_code=resp.status_code)
 
         return HttpClientResponse(status_code=resp.status_code, data=resp.json())
-
-async def fetch_user_from_service(user_id: int) -> dict | None:
-    """
-    Esempio di chiamata HTTP ad un altro servizio.
-    In un contesto reale inserire eventuali header dal gateway (es. X-Request-ID).
-    """
-    if not settings.USERS_SERVICE_URL:
-        return None
-    url = f"{settings.USERS_SERVICE_URL}/api/v1/users/{user_id}"
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        resp = await client.get(url)
-        if resp.status_code == 200:
-            return resp.json()
-        return None
-

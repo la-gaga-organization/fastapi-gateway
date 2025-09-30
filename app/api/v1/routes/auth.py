@@ -5,22 +5,22 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.api.deps import get_current_user
 from app.schemas.auth import UserLogin, TokenResponse
 from app.services import auth
-from app.services.auth import InvalidCredentialsException
+from app.services.auth import create_access_token
+from app.services.http_client import HttpClientException
 
 router = APIRouter()
-
 
 # TODO: aggiungo la gestione degli errori
 # TODO: modifico la gestione delle chiavi per rotazione dei secrets esterna
 # TODO: implemento creazione utente e modifica password (passando dal servizio dedicato)
 # TODO: implemento il routing tra servizi con la gestione delle sessioni
 @router.post("/login", response_model=TokenResponse)
-def login(user: UserLogin):
+async def login(user: UserLogin):
     try:
-        return auth.login(user)
-    except InvalidCredentialsException as e:
-        raise HTTPException(status_code=401, detail=str(e))
-
+        access_token = await create_access_token(data={"username": user.username, "user_id": "1", "session_id": "1"}, expire_minutes=60)
+        return {"access_token": access_token, "refresh_token": "fake-refresh-token", "token_type": "bearer"}
+    except HttpClientException as e:
+        raise e
 
 @router.post("/refresh", response_model=TokenResponse)
 def post_refresh_token(refresh_token: str):

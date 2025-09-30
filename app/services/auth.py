@@ -10,6 +10,7 @@ from app.models.refreshToken import RefreshToken
 from app.models.session import Session
 from app.models.user import User
 from app.schemas.auth import UserLogin
+from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,19 +28,63 @@ class InvalidSessionException(Exception):
 class InvalidTokenException(Exception):
     pass
 
+async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
+    """Crea un token di accesso (access token) utilizzando il servizio di autenticazione esterno.
 
-def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES):
-    to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=expire_minutes)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, private_key, algorithm=ALGORITHM)
+    Args:
+        data (dict): Dati da includere nel payload del token.
+        expire_minutes (int, optional): Tempo di scadenza in minuti. Defaults to settings.ACCESS_TOKEN_EXPIRE_MINUTES.
+
+    Raises:
+        HttpClientException: Eccezione sollevata in caso di errore nella richiesta HTTP.
+
+    Returns:
+        str: Il token di accesso creato.
+    """
+    try:
+        params = HttpParams(data)
+        if expire_minutes:
+            expire = datetime.now() + timedelta(minutes=expire_minutes)
+            params.add_param("expires_in", expire.isoformat())
+            
+        response = await send_request(
+            url=HttpUrl.TOKEN_SERVICE,
+            method=HttpMethod.POST,
+            endpoint="/token/create",
+            _params=params
+        )
+        return response.data
+    except HttpClientException as e:
+        raise e
 
 
-def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_TOKEN_EXPIRE_DAYS):
-    to_encode = data.copy()
-    expire = datetime.now() + timedelta(days=expire_days)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, private_key, algorithm=ALGORITHM)
+async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_TOKEN_EXPIRE_DAYS) -> str:
+    """Crea un token di refresh (refresh token) utilizzando il servizio di autenticazione esterno.
+    Args:
+        data (dict): Dati da includere nel payload del token.
+        expire_days (int, optional): Tempo di scadenza in giorni. Defaults to settings.REFRESH_TOKEN_EXPIRE_DAYS.
+        
+    Raises:
+        HttpClientException: Eccezione sollevata in caso di errore nella richiesta HTTP.
+        
+    Returns:
+        str: Il token di refresh creato.
+    """
+    try:
+        params = HttpParams(data)
+        if expire_days:
+            expire = datetime.now() + timedelta(days=expire_days)
+            params.add_param("expires_in", expire.isoformat())
+            
+        response = await send_request(
+            url=HttpUrl.TOKEN_SERVICE,
+            method=HttpMethod.POST,
+            endpoint="/token/create",
+            _params=params
+        )
+        return response.data
+    except HttpClientException as e:
+        raise e
 
 
 def verify_token(token: str):
