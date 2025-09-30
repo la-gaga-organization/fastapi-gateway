@@ -6,6 +6,7 @@ import sentry_sdk
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
+from app.api.v1.routes import auth
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.base import import_models
@@ -38,7 +39,11 @@ else:
     app = FastAPI(docs_url="/docs", redoc_url="/redoc")
 
 # Routers
-
+app.include_router(
+    prefix="/auth",
+    tags=["auth"],
+    router=auth.router,
+)
 
 @app.get("/health", tags=["health"])
 def health():

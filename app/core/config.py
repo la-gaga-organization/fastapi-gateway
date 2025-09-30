@@ -7,12 +7,18 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./database.db"
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
     SERVICE_PORT: int = 8000
-    USERS_SERVICE_URL: str = "http://users:8000"
     ENVIRONMENT: str = "development"
     SENTRY_DSN: str = ""
     SENTRY_RELEASE: str = "0.1.0"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    
+    #### ROUTES
+    AUTH_SERVICE_URL: str = "http://auth"
+    AUTH_SERVICE_PORT: int = 8000
+    
+    USERS_SERVICE_URL: str = "http://users"
+    USERS_SERVICE_PORT: int = 8000
 
     model_config = SettingsConfigDict(
         env_file=".env",

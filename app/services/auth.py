@@ -13,19 +13,6 @@ from app.schemas.auth import UserLogin
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Carico le chiavi
-PRIVATE_KEY = settings.PRIVATE_KEY
-PUBLIC_KEY = settings.PUBLIC_KEY
-
-with open(PRIVATE_KEY, "r") as f:
-    private_key = f.read()
-
-with open(PUBLIC_KEY, "r") as f:
-    public_key = f.read()
-
-ALGORITHM = "RS256"
-
-
 # Custom exception per invalid credentials
 class InvalidCredentialsException(Exception):
     pass
