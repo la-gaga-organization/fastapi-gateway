@@ -55,14 +55,8 @@ class HttpHeaders():
         headers (dict): Dizionario degli headers HTTP.
     """
 
-    def __init__(self):
-        self.headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-    def __init__(self, initial_headers: dict):
-        self.headers = initial_headers.copy()
+    def __init__(self, initial_headers: dict | None = None):
+        self.headers = initial_headers.copy() if initial_headers else {}
         self.headers.setdefault("Content-Type", "application/json")
         self.headers.setdefault("Accept", "application/json")
 
@@ -133,10 +127,11 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
     """
 
     url = f"{url.value}{API_PREFIX}{endpoint}"
-    print(f"Sending {method} request to {url} with params {_params.to_dict()} and headers {_headers}")
     async with httpx.AsyncClient(timeout=5.0) as client:
-        headers = _headers.to_dict() if _headers else {}
+        headers = _headers.to_dict() if _headers else HttpHeaders().to_dict()
         params = _params.to_dict() if _params else {}
+
+        print(f"Sending {method} request to {url} with params {_params.to_dict()} and headers {_headers}")
 
         try:
             match method:
