@@ -11,7 +11,6 @@ from app.services.http_client import HttpClientException
 router = APIRouter()
 
 # TODO: aggiungo la gestione degli errori
-# TODO: modifico la gestione delle chiavi per rotazione dei secrets esterna
 # TODO: implemento creazione utente e modifica password (passando dal servizio dedicato)
 # TODO: implemento il routing tra servizi con la gestione delle sessioni
 @router.post("/login", response_model=TokenResponse)
