@@ -112,7 +112,7 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def login(user_login: UserLogin):
+async def login(user_login: UserLogin):
     db = next(get_db())
     try:
         user = db.query(User).filter(User.username == user_login.username).first()
@@ -127,9 +127,11 @@ def login(user_login: UserLogin):
         db.commit()
         db.refresh(db_session)
 
-        access_token = create_access_token(data={"username": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
-        refresh_token = create_refresh_token(
-            data={"username": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
+        access_token_response = await create_access_token(data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
+        access_token = access_token_response["token"]
+        refresh_token_response = await create_refresh_token(
+            data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
+        refresh_token = refresh_token_response["token"]
 
         db_access_token = AccessToken(
             session_id=db_session.id,
@@ -185,12 +187,14 @@ async def refresh_token(refresh_token: str) -> TokenResponse:
 
         raise InvalidTokenException("Refresh token expired, Session blocked")
 
-    access_token = create_access_token(
-        {"username": payload["username"], "user_id": payload["user_id"], "session_id": session.id})["token"]
-    refresh_token = create_refresh_token(
+    access_token_response = await create_access_token(
+        {"username": payload["username"], "user_id": payload["user_id"], "session_id": session.id})
+    refresh_token_response = await create_refresh_token(
         {"username": payload["username"], "user_id": payload["user_id"], "session_id": session.id},
         expire_days=(
-                session.expires_at - datetime.now()).days)["token"]  # Scadenza del refresh token uguale a quella della sessione
+                session.expires_at - datetime.now()).days)
+    access_token = access_token_response["token"]
+    refresh_token = refresh_token_response["token"]
     # Segno i vecchi token come scaduti
     db_old_refresh_token.is_expired = True
     db.commit()
