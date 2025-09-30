@@ -131,7 +131,7 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
         headers = _headers.to_dict() if _headers else HttpHeaders().to_dict()
         params = _params.to_dict() if _params else {}
 
-        print(f"Sending {method} request to {url} with params {_params.to_dict()} and headers {_headers}")
+        print(f"Sending {method.value} request to {url} with params {params} and headers {headers}")
 
         try:
             match method:
