@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     SENTRY_RELEASE: str = "0.1.0"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    API_PREFIX: str = "/api/v1"
     
     #### ROUTES
     TOKEN_SERVICE_URL: str = "http://token:8002"

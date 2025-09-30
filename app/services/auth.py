@@ -28,7 +28,7 @@ class InvalidSessionException(Exception):
 class InvalidTokenException(Exception):
     pass
 
-async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
+async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES) -> dict:
     """Crea un token di accesso (access token) utilizzando il servizio di autenticazione esterno.
 
     Args:
@@ -57,7 +57,7 @@ async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_
         raise e
 
 
-async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_TOKEN_EXPIRE_DAYS) -> str:
+async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_TOKEN_EXPIRE_DAYS) -> dict:
     """Crea un token di refresh (refresh token) utilizzando il servizio di autenticazione esterno.
     Args:
         data (dict): Dati da includere nel payload del token.
@@ -85,12 +85,18 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
         raise e
 
 
-def verify_token(token: str):
+async def verify_token(token: str):    
     try:
-        payload = jwt.decode(token, public_key, algorithms=[ALGORITHM])
-        return payload
-    except Exception:
-        return None
+        params = HttpParams({"token": token})            
+        response = await send_request(
+            url=HttpUrl.TOKEN_SERVICE,
+            method=HttpMethod.POST,
+            endpoint="/token/verify",
+            _params=params
+        )
+        return response.data
+    except HttpClientException as e:
+        raise e
 
 
 def verify_password(plain_password: str, hashed_password: str):
@@ -112,9 +118,9 @@ def login(user_login: UserLogin):
         db.commit()
         db.refresh(db_session)
 
-        access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})
+        access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
         refresh_token = create_refresh_token(
-            data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})
+            data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
 
         db_access_token = AccessToken(
             session_id=db_session.id,

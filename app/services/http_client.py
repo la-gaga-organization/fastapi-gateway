@@ -130,9 +130,6 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
     async with httpx.AsyncClient(timeout=5.0) as client:
         headers = _headers.to_dict() if _headers else HttpHeaders().to_dict()
         params = _params.to_dict() if _params else {}
-
-        print(f"Sending {method.value} request to {url} with params {params} and headers {headers}")
-
         try:
             match method:
                 case HttpMethod.GET:
@@ -149,8 +146,6 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                     raise ValueError(f"Unsupported HTTP method: {method}")
         except httpx.RequestError as e:
             raise HttpClientException(f"Request error: {str(e)}", server_message=str(e), url=url, status_code=None)
-
-        print(f"Received response with status code {resp.status_code} and body {resp.text}")
 
         if resp.status_code >= 400:
             raise HttpClientException(f"Couldn't complete the request", server_message=resp.text,

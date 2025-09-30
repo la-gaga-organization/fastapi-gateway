@@ -23,6 +23,8 @@ async def login(user: UserLogin):
         )
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": str(e), "url": None})
 
 @router.post("/refresh", response_model=TokenResponse)
 def post_refresh_token(refresh_token: str):
