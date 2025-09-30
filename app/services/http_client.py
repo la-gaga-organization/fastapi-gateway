@@ -33,11 +33,11 @@ class HttpParams():
     def __init__(self, initial_params: dict):
         self.params = initial_params.copy()
 
-    def add_param(self, key: str, value: str):
+    def add_param(self, key: str, value: any):
         """Aggiunge un parametro alla query della richiesta HTTP.
         Args:
             key (str): Nome del parametro.
-            value (str): Valore del parametro.
+            value (any): Valore del parametro.
         """
         self.params[key] = value
 
@@ -138,17 +138,19 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                 case HttpMethod.GET:
                     resp = await client.get(url, headers=headers, params=params)
                 case HttpMethod.POST:
-                    resp = await client.post(url, headers=headers, data=params)
+                    resp = await client.post(url, headers=headers, json=params)
                 case HttpMethod.PUT:
-                    resp = await client.put(url, headers=headers, data=params)
+                    resp = await client.put(url, headers=headers, json=params)
                 case HttpMethod.DELETE:
-                    resp = await client.delete(url, headers=headers, data=params)
+                    resp = await client.delete(url, headers=headers, json=params)
                 case HttpMethod.PATCH:
-                    resp = await client.patch(url, headers=headers, data=params)
+                    resp = await client.patch(url, headers=headers, json=params)
                 case _:
                     raise ValueError(f"Unsupported HTTP method: {method}")
         except httpx.RequestError as e:
             raise HttpClientException(f"Request error: {str(e)}", server_message=str(e), url=url, status_code=None)
+
+        print(f"Received response with status code {resp.status_code} and body {resp.text}")
 
         if resp.status_code >= 400:
             raise HttpClientException(f"Couldn't complete the request", server_message=resp.text,
