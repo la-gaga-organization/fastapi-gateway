@@ -3,6 +3,9 @@ from enum import Enum
 
 import httpx
 from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Classi e Enum per gestire richieste HTTP in modo strutturato
 API_PREFIX = settings.API_PREFIX
@@ -88,7 +91,7 @@ class HttpClientException(Exception):
         url (str): URL della richiesta che ha causato l'errore.
     """
 
-    def __init__(self, message: str, server_message: str, url: str, status_code: int = None):
+    def __init__(self, message: str, server_message: str, status_code: int, url: str = None):
         super().__init__(message)
         self.status_code = status_code
         self.server_message = server_message
@@ -144,11 +147,20 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                     resp = await client.patch(url, headers=headers, json=params)
                 case _:
                     raise ValueError(f"Unsupported HTTP method: {method}")
-        except httpx.RequestError as e:
-            raise HttpClientException(f"Request error: {str(e)}", server_message=str(e), url=url, status_code=None)
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP request to {url} failed: {str(e)}")
+            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", url=url, status_code=500)
+        except Exception as e:
+            logger.error(f"Unexpected error during HTTP request to {url}: {str(e)}")
+            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", url=url, status_code=500)
 
         if resp.status_code >= 400:
-            raise HttpClientException(f"Couldn't complete the request", server_message=resp.text,
+            json = resp.json()
+            if json["detail"]:
+                server_message = json["detail"]
+            else:
+                server_message = resp.text
+            raise HttpClientException(f"HTTP Error {resp.status_code}", server_message=server_message,
                                       url=url, status_code=resp.status_code)
 
         return HttpClientResponse(status_code=resp.status_code, data=resp.json())

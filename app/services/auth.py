@@ -9,23 +9,32 @@ from app.models.accessToken import AccessToken
 from app.models.refreshToken import RefreshToken
 from app.models.session import Session
 from app.models.user import User
-from app.schemas.auth import UserLogin
+from app.schemas.auth import UserLogin, TokenResponse
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Custom exception per invalid credentials
-class InvalidCredentialsException(Exception):
+class InvalidCredentialsException(HttpClientException):
+    def __init__(self, message: str):
+        super().__init__("Unauthorized", message, 401, "/login")
     pass
 
 
 # Custom exception per invalid session
-class InvalidSessionException(Exception):
+class InvalidSessionException(HttpClientException):
+    def __init__(self, message: str):
+        super().__init__("Forbidden", message, 403, "/logout")
     pass
 
 
 # Custom exception per invalid token
-class InvalidTokenException(Exception):
+class InvalidTokenException(HttpClientException):
+    def __init__(self, message: str):
+        super().__init__("Unauthorized", message, 401, "/token/verify")
     pass
 
 async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES) -> dict:
@@ -85,7 +94,7 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
         raise e
 
 
-async def verify_token(token: str):    
+async def verify_token(token: str) -> dict:
     try:
         params = HttpParams({"token": token})            
         response = await send_request(
@@ -118,9 +127,9 @@ def login(user_login: UserLogin):
         db.commit()
         db.refresh(db_session)
 
-        access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
+        access_token = create_access_token(data={"username": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
         refresh_token = create_refresh_token(
-            data={"sub": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
+            data={"username": user.username, "user_id": user.id, "session_id": db_session.id})["token"]
 
         db_access_token = AccessToken(
             session_id=db_session.id,
@@ -137,23 +146,23 @@ def login(user_login: UserLogin):
         db.add(db_refresh_token)
         db.commit()
         db.refresh(db_refresh_token)
-        return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
     except InvalidCredentialsException as e:
         raise e
     except Exception as e:
-        print(e)
-        raise Exception("Internal server error") from e
+        logger.error(f"Unexpected error during authentication: {str(e)}")
+        raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", status_code=500, url="/login")
 
 
-def refresh_token(refresh_token: str):
-    payload = verify_token(refresh_token)
-    if not payload or "sub" not in payload:
+async def refresh_token(refresh_token: str) -> TokenResponse:
+    payload = await verify_token(refresh_token)
+    if not payload or not payload["verified"]:
         raise InvalidTokenException("Invalid refresh token")
 
     db = next(get_db())
     db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).join(AccessToken).first()
     if not db_old_refresh_token:
-        raise InvalidTokenException("Refresh token invalid")
+        raise InvalidTokenException("Refresh token not found")
 
     session = db.query(Session).filter(Session.id == db_old_refresh_token.session_id).first()
     if not session or not session.is_active:
@@ -177,11 +186,11 @@ def refresh_token(refresh_token: str):
         raise InvalidTokenException("Refresh token expired, Session blocked")
 
     access_token = create_access_token(
-        {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id})
+        {"username": payload["username"], "user_id": payload["user_id"], "session_id": session.id})["token"]
     refresh_token = create_refresh_token(
-        {"sub": payload["sub"], "user_id": payload.get("user_id"), "session_id": session.id},
+        {"username": payload["username"], "user_id": payload["user_id"], "session_id": session.id},
         expire_days=(
-                session.expires_at - datetime.now()).days)  # Scadenza del refresh token uguale a quella della sessione
+                session.expires_at - datetime.now()).days)["token"]  # Scadenza del refresh token uguale a quella della sessione
     # Segno i vecchi token come scaduti
     db_old_refresh_token.is_expired = True
     db.commit()
@@ -205,7 +214,7 @@ def refresh_token(refresh_token: str):
     db.commit()
     db.refresh(db_refresh_token)
 
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 def logout(session_id: int):

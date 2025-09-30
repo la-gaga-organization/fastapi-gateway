@@ -16,24 +16,20 @@ router = APIRouter()
 @router.post("/login", response_model=TokenResponse)
 async def login(user: UserLogin):
     try:
-        access_token = await create_access_token(data={"username": "gaga", "user_id": "1", "session_id": "1"}, expire_minutes=60)
-        return TokenResponse(
-            token=access_token,
-            token_type="bearer",
-        )
+        return await auth.login(user)
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": str(e), "url": None})
 
 @router.post("/refresh", response_model=TokenResponse)
-def post_refresh_token(refresh_token: str):
+async def post_refresh_token(refresh_token: str):
     try:
-        return auth.refresh_token(refresh_token)
-    except auth.InvalidTokenException as e:
-        raise HTTPException(status_code=401, detail=str(e))
-    except auth.InvalidSessionException as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        return await auth.refresh_token(refresh_token)
+    except HttpClientException as e:
+        raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": str(e), "url": None})
 
 
 @router.post("/logout")
