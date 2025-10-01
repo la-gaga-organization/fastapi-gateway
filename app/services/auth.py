@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from fastapi import HTTPException
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -305,3 +306,35 @@ async def register(user: UserRegistration) -> TokenResponse:
 
     # Login automatico dopo la registrazione
     return await login(UserLogin(email=user.email, password=user.password))
+
+# TODO: Aggiungere job per pulizia sessioni e token scaduti
+async def validate_session(access_token: str) -> dict:
+    """Controlla se il token di accesso è valido e la sessione associata è attiva.
+
+    Args:
+        access_token (str): Il token di accesso da convalidare.
+
+    Raises:
+        InvalidTokenException: Se il token di accesso non è valido.
+        InvalidTokenException: Se il token di accesso è scaduto.
+        HTTPException: Se si verifica un errore imprevisto durante la convalida.
+
+    Returns:
+        bool: True se la sessione è valida, altrimenti False.
+    """
+    try:
+        payload = await verify_token(access_token)
+        if not payload or not payload["verified"]:
+            raise InvalidTokenException("Invalid access token")
+
+        if payload["expired"]:
+            raise InvalidTokenException("Access token expired")
+
+        return True
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during session validation: {str(e)}")
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
+                                                     "stack": "Swiggity Swoggity, U won't find my log",
+                                                     "url": "auth/validate_session"})
