@@ -154,44 +154,57 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 
+async def create_user_session_and_tokens(user: User) -> TokenResponse:
+    """
+    Crea una sessione per l'utente, genera access e refresh token, li salva nel DB
+    e restituisce un TokenResponse.
+    """
+    db = next(get_db())
+    db_session = Session(
+        user_id=user.id,
+        expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    db.add(db_session)
+    db.commit()
+    db.refresh(db_session)
+
+    access_token_response = await create_access_token(
+        data={"username": user.username, "user_id": user.id, "session_id": db_session.id}
+    )
+    access_token = access_token_response["token"]
+
+    refresh_token_response = await create_refresh_token(
+        data={"username": user.username, "user_id": user.id, "session_id": db_session.id}
+    )
+    refresh_token = refresh_token_response["token"]
+
+    db_access_token = AccessToken(
+        session_id=db_session.id,
+        token=access_token
+    )
+    db.add(db_access_token)
+    db.commit()
+    db.refresh(db_access_token)
+
+    db_refresh_token = RefreshToken(
+        session_id=db_session.id,
+        token=refresh_token,
+        accessToken_id=db_access_token.id
+    )
+    db.add(db_refresh_token)
+    db.commit()
+    db.refresh(db_refresh_token)
+
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
 async def login(user_login: UserLogin):
     db = next(get_db())
     try:
         user = db.query(User).filter(User.username == user_login.username).first()
         if not user or not verify_password(user_login.password, str(user.hashed_password)):
             raise InvalidCredentialsException("Invalid credentials")
-
-        db_session = Session(
-            user_id=user.id,
-            expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        )
-        db.add(db_session)
-        db.commit()
-        db.refresh(db_session)
-
-        access_token_response = await create_access_token(
-            data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
-        access_token = access_token_response["token"]
-        refresh_token_response = await create_refresh_token(
-            data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
-        refresh_token = refresh_token_response["token"]
-
-        db_access_token = AccessToken(
-            session_id=db_session.id,
-            token=access_token
-        )
-        db.add(db_access_token)
-        db.commit()
-        db.refresh(db_access_token)
-        db_refresh_token = RefreshToken(
-            session_id=db_session.id,
-            token=refresh_token,
-            accessToken_id=db_access_token.id
-        )
-        db.add(db_refresh_token)
-        db.commit()
-        db.refresh(db_refresh_token)
-        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+        return await create_user_session_and_tokens(user)
     except InvalidCredentialsException as e:
         raise e
     except HttpClientException as e:
@@ -299,13 +312,26 @@ async def register(user: UserRegistration) -> TokenResponse:
     # hashed_password = pwd_context.hash(user.password)
 
     create_user_response = await create_new_user(
-        data={"username": user.username, "name": user.name, "surname": user.surname, "email": user.email, "hashed_password": user.password})
+        data={"username": user.username, "name": user.name, "surname": user.surname, "email": user.email,
+              "hashed_password": user.password})
     if not create_user_response or "id" not in create_user_response:
         raise HttpClientException("Internal Server Error", server_message="User creation failed", status_code=500,
                                   url="/auth/register")
 
     # Login automatico dopo la registrazione
-    return await login(UserLogin(username=user.username, password=user.password))
+    # return await login(UserLogin(username=user.username, password=user.password))
+    # richiamo direttamente la creazione della sessione e dei token, senza leggere l'utente dal DB
+    db = next(get_db())
+    user = User(
+        id=create_user_response["id"],
+        username=create_user_response["username"],
+        email=create_user_response["email"],
+        hashed_password="",
+        created_at=create_user_response["created_at"],
+        updated_at=create_user_response["updated_at"]
+    )
+    return await create_user_session_and_tokens(user)
+
 
 # TODO: Aggiungere job per pulizia sessioni e token scaduti
 async def validate_session(access_token: str) -> None:
