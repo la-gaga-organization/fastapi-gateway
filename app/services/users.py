@@ -8,6 +8,7 @@ logger = get_logger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 async def change_password(passwords: ChangePasswordRequest, user_id: int) -> ChangePasswordResponse:
     try:
         params = HttpParams()
@@ -20,13 +21,17 @@ async def change_password(passwords: ChangePasswordRequest, user_id: int) -> Cha
             endpoint="/users/change_password",
             _params=params
         )
-    
+
         return ChangePasswordResponse()
-    except HttpClientException:
+    except HttpClientException as e:
+        logger.error(f"Errore change_password: {e}")
         raise
-    except Exception:
-        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500, "users/change_password")
-    
+    except Exception as e:
+        logger.error(f"Unexpected error during change_password: {e}")
+        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
+                                  "users/change_password")
+
+
 async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserResponse:
     try:
         params = HttpParams()
@@ -44,4 +49,5 @@ async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserRe
     except HttpClientException:
         raise
     except Exception:
-        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500, "users/update_user")
+        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
+                                  "users/update_user")
