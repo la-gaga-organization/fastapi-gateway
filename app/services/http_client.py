@@ -31,12 +31,16 @@ class HttpParams():
     Attributes:
         params (dict): Dizionario dei parametri della query.
     """
+    def __init__(self, initial_params: dict | None = None):
+        """Inizializza i parametri della richiesta HTTP.
 
-    def __init__(self):
-        self.params = {}
-
-    def __init__(self, initial_params: dict):
-        self.params = initial_params.copy()
+        Args:
+            initial_params (dict | None, optional): Parametri iniziali da includere nella richiesta. Defaults to None.
+        """
+        if(initial_params is None):
+            self.params = {}
+        else:
+            self.params = initial_params.copy()
 
     def add_param(self, key: str, value: any):
         """Aggiunge un parametro alla query della richiesta HTTP.
