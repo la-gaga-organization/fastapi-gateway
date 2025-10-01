@@ -11,6 +11,7 @@ class UserLogin(BaseModel):
 
 
 class UserRegistration(BaseModel):
+    username: str
     name: str
     surname: str
     email: str

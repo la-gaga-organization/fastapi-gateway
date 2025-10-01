@@ -299,7 +299,7 @@ async def register(user: UserRegistration) -> TokenResponse:
     # hashed_password = pwd_context.hash(user.password)
 
     create_user_response = await create_new_user(
-        data={"name": user.name, "surname": user.surname, "email": user.email, "password": user.password})
+        data={"username": user.username, "name": user.name, "surname": user.surname, "email": user.email, "hashed_password": user.password})
     if not create_user_response or "id" not in create_user_response:
         raise HttpClientException("Internal Server Error", server_message="User creation failed", status_code=500,
                                   url="/auth/register")
