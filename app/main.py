@@ -6,7 +6,7 @@ import sentry_sdk
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import ORJSONResponse
 
-from app.api.v1.routes import auth
+from app.api.v1.routes import auth, users
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.base import import_models
@@ -45,6 +45,12 @@ current_router.include_router(
     prefix="/auth",
     tags=["auth"],
     router=auth.router,
+)
+
+current_router.include_router(
+    prefix="/users",
+    tags=["users"],
+    router=users.router,
 )
 
 app.include_router(current_router, prefix="/api/v1")
