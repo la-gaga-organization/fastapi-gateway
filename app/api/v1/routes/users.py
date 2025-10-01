@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.logging import get_logger
-from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest
+from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse
 from app.services.http_client import HttpClientException
 from app.services import users, auth
 
@@ -24,7 +24,7 @@ async def change_password(passwords: ChangePasswordRequest, request: Request):
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/change_password"})
 
-@router.patch("/", response_model=ChangePasswordResponse)
+@router.patch("/", response_model=UpdateUserResponse)
 async def update_user_self(new_data: UpdateUserRequest, request: Request):
     try:
         payload = await auth.verify_token(request.headers.get("Authorization").replace("Bearer ", "").strip())
@@ -38,7 +38,7 @@ async def update_user_self(new_data: UpdateUserRequest, request: Request):
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/update_user_self"})
         
-@router.patch("/{user_id}", response_model=ChangePasswordResponse)
+@router.patch("/{user_id}", response_model=UpdateUserResponse)
 async def update_user(user_id: int, new_data: UpdateUserRequest, request: Request):
     try:
         # TODO: verificare che l'utente abbia i permessi per modificare un altro utente

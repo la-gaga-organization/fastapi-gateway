@@ -40,7 +40,7 @@ async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserRe
             endpoint=f"/users/{user_id}",
             _params=params
         )
-        return response
+        return UpdateUserResponse()
     except HttpClientException:
         raise
     except Exception:
