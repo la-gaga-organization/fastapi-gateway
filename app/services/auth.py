@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-from jose import jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.db.session import get_db
 from app.models.accessToken import AccessToken
 from app.models.refreshToken import RefreshToken
@@ -11,11 +11,11 @@ from app.models.session import Session
 from app.models.user import User
 from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
-from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 # Custom exception per invalid credentials
 class InvalidCredentialsException(HttpClientException):
@@ -25,6 +25,7 @@ class InvalidCredentialsException(HttpClientException):
         self.url = "/login"
         self.server_message = message
         # super().__init__("Unauthorized", message, 401, "/login")
+
     pass
 
 
@@ -36,6 +37,7 @@ class InvalidSessionException(HttpClientException):
         self.url = "/logout"
         self.server_message = message
         # super().__init__("Forbidden", message, 403, "/logout")
+
     pass
 
 
@@ -47,7 +49,9 @@ class InvalidTokenException(HttpClientException):
         self.url = "/token/verify"
         self.server_message = message
         # super().__init__("Unauthorized", message, 401, "/token/verify")
+
     pass
+
 
 async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES) -> dict:
     """Crea un token di accesso (access token) utilizzando il servizio di autenticazione esterno.
@@ -83,10 +87,10 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
     Args:
         data (dict): Dati da includere nel payload del token.
         expire_days (int, optional): Tempo di scadenza in giorni. Defaults to settings.REFRESH_TOKEN_EXPIRE_DAYS.
-        
+
     Raises:
         HttpClientException: Eccezione sollevata in caso di errore nella richiesta HTTP.
-        
+
     Returns:
         str: Il token di refresh creato.
     """
@@ -94,7 +98,7 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
         params = HttpParams(data)
         if expire_days:
             params.add_param("expires_in", expire_days * 24 * 60)  # Converti giorni in minuti
-            
+
         response = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
             method=HttpMethod.POST,
@@ -104,7 +108,8 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
         return response.data
     except HttpClientException as e:
         raise e
-    
+
+
 async def create_new_user(data: dict) -> dict:
     """Crea un nuovo utente utilizzando il servizio utenti esterno.
 
@@ -118,9 +123,9 @@ async def create_new_user(data: dict) -> dict:
         dict: Dati dell'utente creato.
     """
     try:
-        params = HttpParams(data)            
+        params = HttpParams(data)
         response = await send_request(
-            url=HttpUrl.USER_SERVICE,
+            url=HttpUrl.USERS_SERVICE,
             method=HttpMethod.POST,
             endpoint="/users/",
             _params=params
@@ -132,7 +137,7 @@ async def create_new_user(data: dict) -> dict:
 
 async def verify_token(token: str) -> dict:
     try:
-        params = HttpParams({"token": token})            
+        params = HttpParams({"token": token})
         response = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
             method=HttpMethod.POST,
@@ -163,7 +168,8 @@ async def login(user_login: UserLogin):
         db.commit()
         db.refresh(db_session)
 
-        access_token_response = await create_access_token(data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
+        access_token_response = await create_access_token(
+            data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
         access_token = access_token_response["token"]
         refresh_token_response = await create_refresh_token(
             data={"username": user.username, "user_id": user.id, "session_id": db_session.id})
@@ -191,7 +197,8 @@ async def login(user_login: UserLogin):
         raise e
     except Exception as e:
         logger.error(f"Unexpected error during authentication: {str(e)}")
-        raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", status_code=500, url="/auth/login")
+        raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
+                                  status_code=500, url="/auth/login")
 
 
 async def refresh_token(refresh_token: TokenRequest) -> TokenResponse:
@@ -200,7 +207,8 @@ async def refresh_token(refresh_token: TokenRequest) -> TokenResponse:
         raise InvalidTokenException("Invalid refresh token")
 
     db = next(get_db())
-    db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token.token).join(AccessToken).first()
+    db_old_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token.token).join(
+        AccessToken).first()
     if not db_old_refresh_token:
         raise InvalidTokenException("Refresh token not found")
 
@@ -263,10 +271,10 @@ async def logout(access_token: TokenRequest):
     payload = await verify_token(access_token.token)
     if not payload or not payload["verified"]:
         raise InvalidTokenException("Invalid access token")
-    
+
     if payload["expired"]:
         raise InvalidTokenException("Access token expired")
-    
+
     db = next(get_db())
     session = db.query(Session).filter(Session.id == payload["session_id"]).first()
     if not session:
@@ -284,13 +292,16 @@ async def logout(access_token: TokenRequest):
 
     return {"detail": "Logout successful"}
 
+
 async def register(user: UserRegistration) -> TokenResponse:
     # TODO: Valutare l'hashing della password prima di inviarla al servizio utenti
-    #hashed_password = pwd_context.hash(user.password)
+    # hashed_password = pwd_context.hash(user.password)
 
-    create_user_response = await create_new_user(data={"name": user.name, "surname": user.surname, "email": user.email, "password": user.password})
+    create_user_response = await create_new_user(
+        data={"name": user.name, "surname": user.surname, "email": user.email, "password": user.password})
     if not create_user_response or "id" not in create_user_response:
-        raise HttpClientException("Internal Server Error", server_message="User creation failed", status_code=500, url="/auth/register")
+        raise HttpClientException("Internal Server Error", server_message="User creation failed", status_code=500,
+                                  url="/auth/register")
 
     # Login automatico dopo la registrazione
-    return await login(UserLogin(username=user.email, password=user.password))
+    return await login(UserLogin(email=user.email, password=user.password))

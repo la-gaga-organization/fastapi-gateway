@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from enum import Enum
 
 import httpx
+
 from app.core.config import settings
 from app.core.logging import get_logger
 
@@ -80,6 +82,7 @@ class HttpHeaders():
         """
         return self.headers
 
+
 # Errori e risposte
 
 
@@ -111,7 +114,8 @@ class HttpClientResponse():
         self.data = data
 
 
-async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None, _headers: HttpHeaders = None) -> HttpClientResponse:
+async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None,
+                       _headers: HttpHeaders = None) -> HttpClientResponse:
     """Gestisce la risposta della richiesta HTTP.
 
     Ritorna HttpClientResponse o solleva HttpClientException in caso di errore.
@@ -150,10 +154,12 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                     raise ValueError(f"Unsupported HTTP method: {method}")
         except httpx.HTTPError as e:
             logger.error(f"HTTP request to {url} failed: {str(e)}")
-            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", url=url, status_code=500)
+            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
+                                      url=url, status_code=500)
         except Exception as e:
             logger.error(f"Unexpected error during HTTP request to {url}: {str(e)}")
-            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", url=url, status_code=500)
+            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
+                                      url=url, status_code=500)
 
         if resp.status_code >= 400:
             json = resp.json()
