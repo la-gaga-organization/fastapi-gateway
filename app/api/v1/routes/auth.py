@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from app.schemas.auth import UserLogin, TokenResponse, TokenRequest
+from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration
 from app.services import auth
 from app.services.auth import create_access_token
 from app.services.http_client import HttpClientException
+from app.core.logging import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 # TODO: aggiungo la gestione degli errori
@@ -19,7 +21,8 @@ async def login(user: UserLogin):
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": str(e), "url": None})
+        logger.error(f"Unexpected error during login: {str(e)}")
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": "Swiggity Swoggity, U won't find my log", "url": "auth/login"})
 
 @router.post("/refresh", response_model=TokenResponse)
 async def post_refresh_token(refresh_token: TokenRequest):
@@ -28,7 +31,8 @@ async def post_refresh_token(refresh_token: TokenRequest):
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": str(e), "url": None})
+        logger.error(f"Unexpected error during token refresh: {str(e)}")
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": "Swiggity Swoggity, U won't find my log", "url": "auth/refresh"})
 
 
 @router.post("/logout")
@@ -39,3 +43,18 @@ async def logout(access_token: TokenRequest):
         raise HTTPException(status_code=401, detail=str(e))
     except auth.InvalidSessionException as e:
         raise HTTPException(status_code=403, detail=str(e))
+    except HttpClientException as e:
+        raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
+    except Exception as e:
+        logger.error(f"Unexpected error during logout: {str(e)}")
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": "Swiggity Swoggity, U won't find my log", "url": "auth/logout"})
+
+@router.post("/register", response_model=TokenResponse)
+async def register(user: UserRegistration):
+    try:
+        return await auth.register(user)
+    except HttpClientException as e:
+        raise HTTPException(status_code=e.status_code, detail={"message": e.message, "stack": e.server_message, "url": e.url})
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {str(e)}")
+        raise HTTPException(status_code=500, detail={"message": "Internal Server Error", "stack": "Swiggity Swoggity, U won't find my log", "url": "auth/register"})

@@ -9,7 +9,7 @@ from app.models.accessToken import AccessToken
 from app.models.refreshToken import RefreshToken
 from app.models.session import Session
 from app.models.user import User
-from app.schemas.auth import UserLogin, TokenResponse, TokenRequest
+from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
 from app.core.logging import get_logger
 
@@ -104,6 +104,30 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
         return response.data
     except HttpClientException as e:
         raise e
+    
+async def create_new_user(data: dict) -> dict:
+    """Crea un nuovo utente utilizzando il servizio utenti esterno.
+
+    Args:
+        data (dict): Dati dell'utente da creare.
+
+    Raises:
+        HttpClientException: Eccezione sollevata in caso di errore nella richiesta HTTP.
+
+    Returns:
+        dict: Dati dell'utente creato.
+    """
+    try:
+        params = HttpParams(data)            
+        response = await send_request(
+            url=HttpUrl.USER_SERVICE,
+            method=HttpMethod.POST,
+            endpoint="/users/",
+            _params=params
+        )
+        return response.data
+    except HttpClientException as e:
+        raise e
 
 
 async def verify_token(token: str) -> dict:
@@ -163,9 +187,11 @@ async def login(user_login: UserLogin):
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
     except InvalidCredentialsException as e:
         raise e
+    except HttpClientException as e:
+        raise e
     except Exception as e:
         logger.error(f"Unexpected error during authentication: {str(e)}")
-        raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", status_code=500, url="/login")
+        raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", status_code=500, url="/auth/login")
 
 
 async def refresh_token(refresh_token: TokenRequest) -> TokenResponse:
@@ -257,3 +283,14 @@ async def logout(access_token: TokenRequest):
     db.commit()
 
     return {"detail": "Logout successful"}
+
+async def register(user: UserRegistration) -> TokenResponse:
+    # TODO: Valutare l'hashing della password prima di inviarla al servizio utenti
+    #hashed_password = pwd_context.hash(user.password)
+
+    create_user_response = await create_new_user(data={"name": user.name, "surname": user.surname, "email": user.email, "password": user.password})
+    if not create_user_response or "id" not in create_user_response:
+        raise HttpClientException("Internal Server Error", server_message="User creation failed", status_code=500, url="/auth/register")
+
+    # Login automatico dopo la registrazione
+    return await login(UserLogin(username=user.email, password=user.password))
