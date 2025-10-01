@@ -1,14 +1,6 @@
-from datetime import datetime, timedelta
-
-from fastapi import HTTPException
 from passlib.context import CryptContext
-from requests import session
 
-from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.session import get_db
-from app.models.session import Session
-from app.models.user import User
 from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
 

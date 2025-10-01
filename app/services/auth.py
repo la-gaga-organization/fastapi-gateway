@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from requests import session
 
 from app.core.config import settings
 from app.core.logging import get_logger
