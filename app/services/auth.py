@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from passlib.context import CryptContext
+from requests import session
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -308,7 +309,7 @@ async def register(user: UserRegistration) -> TokenResponse:
     return await login(UserLogin(email=user.email, password=user.password))
 
 # TODO: Aggiungere job per pulizia sessioni e token scaduti
-async def validate_session(access_token: str) -> dict:
+async def validate_session(access_token: str) -> None:
     """Controlla se il token di accesso è valido e la sessione associata è attiva.
 
     Args:
@@ -327,10 +328,18 @@ async def validate_session(access_token: str) -> dict:
         if not payload or not payload["verified"]:
             raise InvalidTokenException("Invalid access token")
 
-        if payload["expired"]:
-            raise InvalidTokenException("Access token expired")
+        db = next(get_db())
 
-        return True
+        if payload["expired"]:
+            # Segna il token come scaduto
+            session = db.query(Session).filter(Session.id == payload["session_id"]).first()
+            if session:
+                # Segna il token access come scaduto
+                db.query(AccessToken).filter(AccessToken.session_id == session.id).update({"is_expired": True})
+                db.commit()
+                raise InvalidTokenException("Access token expired")
+            else:
+                raise InvalidTokenException("Access token is of an expired session")
     except HTTPException:
         raise
     except Exception as e:
