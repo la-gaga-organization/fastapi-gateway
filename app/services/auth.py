@@ -305,7 +305,7 @@ async def register(user: UserRegistration) -> TokenResponse:
                                   url="/auth/register")
 
     # Login automatico dopo la registrazione
-    return await login(UserLogin(email=user.email, password=user.password))
+    return await login(UserLogin(username=user.username, password=user.password))
 
 # TODO: Aggiungere job per pulizia sessioni e token scaduti
 async def validate_session(access_token: str) -> None:
