@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 
 from app.core.logging import get_logger
-from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse
+from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserResponse
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
 
 logger = get_logger(__name__)
@@ -51,3 +51,18 @@ async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserRe
     except Exception:
         raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
                                   "users/update_user")
+
+async def delete_user(user_id: int) -> DeleteUserResponse:
+    try:
+        params = HttpParams()
+        response = await send_request(
+            method=HttpMethod.DELETE,
+            url=HttpUrl.USERS_SERVICE,
+            endpoint=f"/users/{user_id}"
+        )
+        return DeleteUserResponse()
+    except HttpClientException:
+        raise
+    except Exception:
+        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
+                                  "users/delete_user")

@@ -17,3 +17,6 @@ class UpdateUserRequest(BaseModel):
     
 class UpdateUserResponse(BaseModel):
     message: str = "User updated successfully"
+    
+class DeleteUserResponse(BaseModel):
+    message: str = "User deleted successfully"
