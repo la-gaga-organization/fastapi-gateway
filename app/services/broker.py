@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+import pika
 import asyncio
-import aio_pika
-from aio_pika import ExchangeType
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.db.session import SessionLocal
@@ -10,41 +9,98 @@ from app.services.user_service import upsert_user_from_event
 
 logger = get_logger(__name__)
 
-
-async def _consume_users_queue() -> None:
+class BrokerSingleton:
+    """Singleton per la gestione della connessione a RabbitMQ e delle operazioni di publish/subscribe.
     """
-    Consumatore semplice:
-      - dichiara exchange 'user.events' (topic)
-      - dichiara queue 'user_service_user_events'
-      - binding key 'user.*'
-    """
-    connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
-    async with connection:
-        channel = await connection.channel()
-        await channel.set_qos(prefetch_count=32)
+    _instance = None
+    _connection = None
+    _exchanges = {}
 
-        exchange = await channel.declare_exchange("user.events", ExchangeType.TOPIC, durable=True)
-        queue = await channel.declare_queue("users_service_user_events", durable=True)
-        await queue.bind(exchange, routing_key="user.*")
+    def __new__(cls):
+        if cls._instance is None:
+            setup_logging()
+            logger.info("Starting broker consumer...")
+            cls._instance = super().__new__(cls)
+            cls._connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=settings.RABBITMQ_HOST)
+            )
+            if cls._connection.is_open:
+                logger.info("Connected to RabbitMQ")
+            else:
+                logger.error("Failed to connect to RabbitMQ")
+                raise ConnectionError("Failed to connect to RabbitMQ")
+            cls._exchanges = {}
+        return cls._instance
 
-        async with queue.iterator() as queue_iter:
-            async for message in queue_iter:
-                async with message.process(requeue=False):
-                    body = message.body.decode()
-                    logger.info("Received user event")
-                    # Usa una sessione breve per ogni messaggio
-                    db = SessionLocal()
-                    try:
-                        upsert_user_from_event(db, body)
-                    finally:
-                        db.close()
+    @property
+    def connection(self):
+        """Restituisce la connessione RabbitMQ.
 
+        Returns:
+            pika.BlockingConnection: Connessione RabbitMQ.
+        """
+        return self._connection
 
-async def main() -> None:
-    setup_logging()
-    logger.info("Starting broker consumer...")
-    await _consume_users_queue()
+    def subscribe(self, exchange_name: str, callback, ex_type: str = "fanout", routing_key: str = ""):
+        """Iscrive a un exchange RabbitMQ e inizia a consumare i messaggi.
 
+        Args:
+            exchange_name (str): Nome dell'exchange.
+            callback (function): Funzione di callback per gestire i messaggi ricevuti.
+            ex_type (str, optional): Tipo di exchange. Defaults to "fanout".
+            routing_key (str, optional): Chiave di routing. Defaults to "".
+        """
+        channel = self.declare(exchange_name, ex_type)
+        queue_result = channel.queue_declare(queue=f'queue_{exchange_name}', exclusive=True)
+        queue_name = queue_result.method.queue
+        channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
+        print(f"Subscribed to exchange {exchange_name} with queue {queue_name}")
+        channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
+        channel.start_consuming()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    def unsubscribe(self, exchange_name: str):
+        """Annulla l'iscrizione a un exchange RabbitMQ.
+
+        Args:
+            exchange_name (str): Nome dell'exchange.
+        """
+        if exchange_name in self._exchanges:
+            channel = self._exchanges[exchange_name]
+            channel.stop_consuming()
+            del self._exchanges[exchange_name]
+            print(f"Unsubscribed from exchange {exchange_name}")
+
+    def declare(self, exchange_name: str, t: str = "fanout"):
+        """Dichiara un exchange RabbitMQ se non esiste già.
+
+        Args:
+            exchange_name (str): Nome dell'exchange.
+            t (str, optional): Tipo di exchange. Defaults to "fanout".
+        Returns:
+            pika.channel.Channel: Canale collegato all'exchange.
+        """
+        if exchange_name not in self._exchanges:
+            channel = self._connection.channel()
+            channel.exchange_declare(exchange=exchange_name, exchange_type=t)
+            self._exchanges[exchange_name] = channel
+            print(f"Declared exchange {exchange_name}")
+        return self._exchanges[exchange_name]
+
+    def send(self, exchange_name: str, type: str, data: dict):
+        """Manda un messaggio a un exchange RabbitMQ.
+
+        Args:
+            exchange_name (str): Nome dell'exchange.
+            type (str): Tipo di evento.
+            data (dict): Dati dell'evento.
+        """
+        channel = self.declare(exchange_name)
+        channel.basic_publish(
+            exchange=exchange_name,
+            routing_key='',
+            body={
+                "type": type,
+                "data": data
+            }
+        )
+        print(f"Sent message to exchange {exchange_name}. Type: {type}")

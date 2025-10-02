@@ -10,6 +10,7 @@ from app.api.v1.routes import auth, users
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.base import import_models
+from app.services import broker
 
 import_models()  # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 
@@ -54,6 +55,11 @@ current_router.include_router(
 )
 
 app.include_router(current_router, prefix="/api/v1")
+
+# RabbitMQ Broker
+broker_instance = broker.BrokerSingleton()
+broker_instance.subscribe("users_events", broker.user_event_callback)
+broker_instance.send("users_events", "ADD", {"service": settings.SERVICE_NAME})
 
 
 @app.get("/health", tags=["health"])
