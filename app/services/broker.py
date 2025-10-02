@@ -54,7 +54,7 @@ class BrokerSingleton:
         queue_result = channel.queue_declare(queue=f'queue_{exchange_name}', exclusive=True)
         queue_name = queue_result.method.queue
         channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
-        print(f"Subscribed to exchange {exchange_name} with queue {queue_name}")
+        logger.info(f"Subscribed to exchange {exchange_name} with queue {queue_name}")
         channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
         channel.start_consuming()
 
@@ -68,7 +68,7 @@ class BrokerSingleton:
             channel = self._exchanges[exchange_name]
             channel.stop_consuming()
             del self._exchanges[exchange_name]
-            print(f"Unsubscribed from exchange {exchange_name}")
+            logger.info(f"Unsubscribed from exchange {exchange_name}")
 
     def declare(self, exchange_name: str, t: str = "fanout"):
         """Dichiara un exchange RabbitMQ se non esiste già.
@@ -83,7 +83,7 @@ class BrokerSingleton:
             channel = self._connection.channel()
             channel.exchange_declare(exchange=exchange_name, exchange_type=t)
             self._exchanges[exchange_name] = channel
-            print(f"Declared exchange {exchange_name}")
+            logger.info(f"Declared exchange {exchange_name}")
         return self._exchanges[exchange_name]
 
     def send(self, exchange_name: str, type: str, data: dict):
@@ -103,4 +103,4 @@ class BrokerSingleton:
                 "data": data
             }
         )
-        print(f"Sent message to exchange {exchange_name}. Type: {type}")
+        logger.info(f"Sent message to exchange {exchange_name}. Type: {type}")
