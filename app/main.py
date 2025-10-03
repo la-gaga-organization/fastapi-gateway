@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 import sentry_sdk
+import sys
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import ORJSONResponse
 
@@ -42,9 +43,15 @@ async def lifespan(app: FastAPI):
 
     # Avvia il broker asincrono all'avvio dell'app
     broker_instance = broker.AsyncBrokerSingleton()
-    await broker_instance.connect()
-    for exchange, cb in exchanges.items():
-        await broker_instance.subscribe(exchange, cb)
+    connected = await broker_instance.connect()
+    if(not connected):
+        logger.error("Could not connect to RabbitMQ. Exiting...")
+        sys.exit(1)
+
+    else:
+        logger.info("Connected to RabbitMQ.")
+        for exchange, cb in exchanges.items():
+            await broker_instance.subscribe(exchange, cb)
 
     yield
 

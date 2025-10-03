@@ -14,6 +14,11 @@ class AsyncBrokerSingleton:
     _instance = None
 
     def __new__(cls, service_name: str = settings.SERVICE_NAME):
+        """Implementa il pattern Singleton per la classe AsyncBrokerSingleton.
+
+        Args:
+            service_name (str): Nome del servizio che utilizza il broker.
+        """
         if cls._instance is None:
             setup_logging()
             logger.info("Starting async broker consumer...")
@@ -21,6 +26,11 @@ class AsyncBrokerSingleton:
         return cls._instance
 
     def __init__(self, service_name: str = settings.SERVICE_NAME):
+        """Inizializza il broker asincrono.
+
+        Args:
+            service_name (str): Nome del servizio che utilizza il broker.
+        """
         self.service_name = service_name
         self.connection = None
         self.channel = None
@@ -28,16 +38,31 @@ class AsyncBrokerSingleton:
         self.tasks = {}
 
     async def connect(self):
-        self.connection = await aio_pika.connect_robust(
-            host=settings.RABBITMQ_HOST,
-            port=settings.RABBITMQ_PORT,
-            login=settings.RABBITMQ_USER,
-            password=settings.RABBITMQ_PASS
-        )
-        self.channel = await self.connection.channel()
-        logger.info("Connected to RabbitMQ (aio-pika)")
+        """Stabilisce una connessione asincrona a RabbitMQ."""
+        try:
+            self.connection = await aio_pika.connect_robust(
+                host=settings.RABBITMQ_HOST,
+                port=settings.RABBITMQ_PORT,
+                login=settings.RABBITMQ_USER,
+                password=settings.RABBITMQ_PASS
+            )
+            self.channel = await self.connection.channel()
+            logger.info("Connected to RabbitMQ (aio-pika)")
+
+            return True
+        except Exception as e:
+            logger.error(f"Failed to connect to RabbitMQ: {e}")
+            return False
 
     async def subscribe(self, exchange_name, callback, ex_type="direct", routing_key=""):
+        """Sottoscrive a un exchange RabbitMQ con una callback specifica (asincrono).
+
+        Args:
+            exchange_name (str): Nome dell'exchange a cui sottoscriversi.
+            callback (callable): Funzione di callback da chiamare quando arriva un messaggio.
+            ex_type (str): Tipo di exchange (default: "direct").
+            routing_key (str): Chiave di routing per il binding della coda (default: ""). Se vuota, si sottoscrive a tutti i messaggi dell'exchange.
+        """
         exchange = await self.channel.declare_exchange(exchange_name, ex_type)
         if routing_key:
             queue_name = f"{self.service_name}.{exchange_name}.{routing_key}"
@@ -51,6 +76,11 @@ class AsyncBrokerSingleton:
         logger.info(f"Subscribed to exchange {exchange_name} with queue '{queue_name}' and routing key '{routing_key}' (aio-pika)")
 
     async def unsubscribe(self, queue_name):
+        """Annulla la sottoscrizione a una coda RabbitMQ (asincrono).
+
+        Args:
+            queue_name (str): Nome della coda da cui annullare la sottoscrizione.
+        """
         if queue_name in self.tasks:
             self.tasks[queue_name].cancel()
             await asyncio.sleep(0)
@@ -62,6 +92,13 @@ class AsyncBrokerSingleton:
         logger.info(f"Unsubscribed from queue '{queue_name}' (aio-pika)")
 
     async def publish_message(self, exchange_name, msg_type, data, routing_key=""):
+        """Pubblica un messaggio su un exchange RabbitMQ (asincrono).
+        Args:
+            exchange_name (str): Nome dell'exchange su cui pubblicare il messaggio.
+            msg_type (str): Tipo di messaggio.
+            data (dict): Dati del messaggio.
+            routing_key (str): Chiave di routing per il messaggio (default: ""). Se vuota, il messaggio viene inviato a tutti i consumatori dell'exchange.
+        """
         exchange = await self.channel.declare_exchange(exchange_name, "direct")
         message = aio_pika.Message(
             body=json.dumps({"type": msg_type, "data": data}).encode("utf-8"),
@@ -72,6 +109,7 @@ class AsyncBrokerSingleton:
         logger.info(f"Sent message to exchange {exchange_name}. Type: {msg_type}, Routing key: {routing_key} (aio-pika)")
 
     async def close(self):
+        """Chiude la connessione a RabbitMQ e annulla tutte le sottoscrizioni (asincrono)."""
         for queue_name in list(self.tasks.keys()):
             await self.unsubscribe(queue_name)
         if self.channel:
@@ -81,7 +119,11 @@ class AsyncBrokerSingleton:
         logger.info("Closed all RabbitMQ consumer tasks (aio-pika)")
 
 def declare_services_exchanges(exchanges: dict):
-    """Dichiara e sottoscrive agli exchange RabbitMQ specificati nel dizionario exchanges (asincrono)."""
+    """Dichiara e sottoscrive agli exchange RabbitMQ specificati nel dizionario exchanges (asincrono).
+
+    Args:
+        exchanges (dict): Dizionario con chiavi come nomi degli exchange e valori come funzioni di callback.
+    """
     async def runner():
         broker_instance = AsyncBrokerSingleton()
         await broker_instance.connect()
