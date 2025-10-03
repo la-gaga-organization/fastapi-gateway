@@ -5,7 +5,6 @@ import asyncio
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.db.session import SessionLocal
-from app.services.user_service import upsert_user_from_event
 
 logger = get_logger(__name__)
 
@@ -22,7 +21,7 @@ class BrokerSingleton:
             logger.info("Starting broker consumer...")
             cls._instance = super().__new__(cls)
             cls._connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=settings.RABBITMQ_HOST)
+                pika.ConnectionParameters(host=settings.RABBITMQ_URL)
             )
             if cls._connection.is_open:
                 logger.info("Connected to RabbitMQ")
