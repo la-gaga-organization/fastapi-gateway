@@ -68,18 +68,11 @@ def callback(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 exchanges = {
-    "users": {  # Ascolta i messaggi con routing key:
-        "add" : callback,
-        "update" : callback,
-        "delete" : callback,
-    },
-    "auth": {
-        "all" : callback,
-    },  # Ascolta tutti i messaggi
+    "users" : callback(),
+    "banana" : callback()
 }
 
 broker.declare_services_exchanges(exchanges)
-
 
 @app.get("/health", tags=["health"])
 def health():
