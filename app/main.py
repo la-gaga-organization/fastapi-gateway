@@ -8,7 +8,7 @@ from fastapi.responses import ORJSONResponse
 
 from app.api.v1.routes import auth, users
 from app.core.config import settings
-from app.core.logging import setup_logging
+from app.core.logging import setup_logging, get_logger
 from app.db.base import import_models
 from app.services import broker
 
@@ -20,12 +20,18 @@ sentry_sdk.init(
     release=settings.SENTRY_RELEASE,
 )
 
+logger = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    logger = get_logger(__name__)
+    logger.info(f"Starting {settings.SERVICE_NAME}...")
     yield
-
+    broker_instance = broker.BrokerSingleton()
+    if broker_instance:
+        broker_instance.close()
+        logger.info(f"Broker {broker_instance} closed")
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
@@ -78,11 +84,3 @@ broker.declare_services_exchanges(exchanges)
 @app.get("/health", tags=["health"])
 def health():
     return {"status": "ok", "service": settings.SERVICE_NAME}
-
-@asynccontextmanager
-async def shutdown_event():
-    broker_instance = broker.BrokerSingleton()
-    if broker_instance:
-        broker_instance.close()
-        logger.info(f"Broker {broker_instance} closed")
-    yield
