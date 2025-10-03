@@ -16,6 +16,7 @@ class BrokerSingleton:
     _instance = None
     _connection = None
     _exchanges = {}
+    _service_name = ""
 
     def __new__(cls):
         if cls._instance is None:
@@ -38,6 +39,9 @@ class BrokerSingleton:
             cls._exchanges = {}
         return cls._instance
 
+    def __init__(self, service_name: str = settings.SERVICE_NAME):
+        self.service_name = service_name
+
     @property
     def connection(self):
         """Restituisce la connessione RabbitMQ.
@@ -58,10 +62,10 @@ class BrokerSingleton:
         """
         channel = self.declare(exchange_name, ex_type)
         queue_result = channel.queue_declare(
-            queue=f'queue_{exchange_name}',
+            queue=f'{self.service_name}.{exchange_name}.{routing_key if routing_key else "all"}',
             exclusive=False,  # non elimina la coda alla disconnessione
             durable=True,  # la coda sopravvive al riavvio del server RabbitMQ, salvando i messaggi su disco
-            auto_delete=False  # la coda non viene eliminata automaticamente quando non ci sono consumatori
+            auto_delete=True  # la coda non viene eliminata automaticamente quando non ci sono consumatori
         )
         queue_name = queue_result.method.queue
         channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
@@ -77,7 +81,8 @@ class BrokerSingleton:
         """
         if exchange_name in self._exchanges:
             channel = self._exchanges[exchange_name]
-            channel.stop_consuming()
+            channel.exchange_delete(exchange=exchange_name)
+            #channel.stop_consuming()
             del self._exchanges[exchange_name]
             logger.info(f"Unsubscribed from exchange {exchange_name}")
 

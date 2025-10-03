@@ -72,14 +72,3 @@ async def delete_user(user_id: int, request: Request):
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/delete_user"})
-
-
-from app.services import broker
-
-
-@router.get("/testrabbit")
-async def test_rabbitmq(request: Request):
-    broker_instance = broker.BrokerSingleton()
-
-    broker_instance.publish_message("users_events", "ADD", {})
-    return {"message": "Message sent to RabbitMQ"}
