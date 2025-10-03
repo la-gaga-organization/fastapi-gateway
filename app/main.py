@@ -57,11 +57,32 @@ current_router.include_router(
 app.include_router(current_router, prefix="/api/v1")
 
 # RabbitMQ Broker
-broker_instance = broker.BrokerSingleton()
-# broker_instance.subscribe("users_events", broker.user_event_callback)
-broker_instance.publish_message("users_events", "ADD", {"service": settings.SERVICE_NAME})
+def callback(ch, method, properties, body):
+    print(f"Received message from exchange '{method.exchange}' with routing key '{method.routing_key}': {body.decode()}")
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+exchanges = {
+    "users": {  # Ascolta i messaggi con routing key:
+        "add" : callback,
+        "update" : callback,
+        "delete" : callback,
+    },
+    "auth": {
+        "all" : callback,
+    },  # Ascolta tutti i messaggi
+}
+
+broker.declare_services_exchanges(exchanges)
 
 
 @app.get("/health", tags=["health"])
 def health():
     return {"status": "ok", "service": settings.SERVICE_NAME}
+
+@asynccontextmanager
+async def shutdown_event():
+    broker_instance = broker.BrokerSingleton()
+    if broker_instance:
+        broker_instance.close()
+        logger.info(f"Broker {broker_instance} closed")
+    yield
