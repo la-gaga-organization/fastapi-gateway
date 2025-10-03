@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import pika
-import asyncio
+
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
-from app.db.session import SessionLocal
 
 logger = get_logger(__name__)
+
 
 class BrokerSingleton:
     """Singleton per la gestione della connessione a RabbitMQ e delle operazioni di publish/subscribe.
@@ -20,8 +20,13 @@ class BrokerSingleton:
             setup_logging()
             logger.info("Starting broker consumer...")
             cls._instance = super().__new__(cls)
+            credentials = pika.PlainCredentials(settings.RABBITMQ_USER, settings.RABBITMQ_PASS)
             cls._connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=settings.RABBITMQ_URL)
+                pika.ConnectionParameters(
+                    host=settings.RABBITMQ_HOST,
+                    port=settings.RABBITMQ_PORT,
+                    credentials=credentials
+                )
             )
             if cls._connection.is_open:
                 logger.info("Connected to RabbitMQ")
