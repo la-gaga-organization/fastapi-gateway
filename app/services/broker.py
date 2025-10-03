@@ -38,7 +38,7 @@ class AsyncBrokerSingleton:
         self.channel = await self.connection.channel()
         logger.info("Connected to RabbitMQ (aio-pika)")
 
-    async def subscribe(self, exchange_name, callback, ex_type="direct", routing_key=""):
+    async def subscribe(self, exchange_name, callback, ex_type="fanout", routing_key=""):
         exchange = await self.channel.declare_exchange(exchange_name, ex_type)
         queue = await self.channel.declare_queue(
             f"{self.service_name}.{exchange_name}.{routing_key if routing_key else 'all'}",
@@ -63,7 +63,7 @@ class AsyncBrokerSingleton:
         logger.info(f"Unsubscribed from exchange {exchange_name} with routing key '{routing_key}' (aio-pika)")
 
     async def publish_message(self, exchange_name, event_type, data, routing_key=""):
-        exchange = await self.channel.declare_exchange(exchange_name, "direct")
+        exchange = await self.channel.declare_exchange(exchange_name, "fanout")
         message = aio_pika.Message(
             body=json.dumps({"type": event_type, "data": data}).encode("utf-8"),
             content_type="application/json",
