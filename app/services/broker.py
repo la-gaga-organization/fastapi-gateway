@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pika
 
 from app.core.config import settings
@@ -55,7 +57,12 @@ class BrokerSingleton:
             routing_key (str, optional): Chiave di routing. Defaults to "".
         """
         channel = self.declare(exchange_name, ex_type)
-        queue_result = channel.queue_declare(queue=f'queue_{exchange_name}', exclusive=True)
+        queue_result = channel.queue_declare(
+            queue=f'queue_{exchange_name}',
+            exclusive=False,  # non elimina la coda alla disconnessione
+            durable=True,  # la coda sopravvive al riavvio del server RabbitMQ, salvando i messaggi su disco
+            auto_delete=False  # la coda non viene eliminata automaticamente quando non ci sono consumatori
+        )
         queue_name = queue_result.method.queue
         channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
         logger.info(f"Subscribed to exchange {exchange_name} with queue {queue_name}")
@@ -90,8 +97,9 @@ class BrokerSingleton:
             logger.info(f"Declared exchange {exchange_name}")
         return self._exchanges[exchange_name]
 
-    def send(self, exchange_name: str, type: str, data: dict):
-        """Manda un messaggio a un exchange RabbitMQ.
+    def publish_message(self, exchange_name: str, type: str, data: dict):
+        """
+        Manda un messaggio a un exchange RabbitMQ.
 
         Args:
             exchange_name (str): Nome dell'exchange.
@@ -99,12 +107,20 @@ class BrokerSingleton:
             data (dict): Dati dell'evento.
         """
         channel = self.declare(exchange_name)
+
+        message = {
+            "type": type,
+            "data": data
+        }
+
         channel.basic_publish(
             exchange=exchange_name,
             routing_key='',
-            body={
-                "type": type,
-                "data": data
-            }
+            body=json.dumps(message).encode("utf-8"),
+            properties=pika.BasicProperties(
+                content_type="application/json",
+                delivery_mode=2  # rendo il messaggio persistente
+            )
         )
+
         logger.info(f"Sent message to exchange {exchange_name}. Type: {type}")

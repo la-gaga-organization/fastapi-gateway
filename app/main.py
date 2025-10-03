@@ -58,8 +58,8 @@ app.include_router(current_router, prefix="/api/v1")
 
 # RabbitMQ Broker
 broker_instance = broker.BrokerSingleton()
-broker_instance.subscribe("users_events", broker.user_event_callback)
-broker_instance.send("users_events", "ADD", {"service": settings.SERVICE_NAME})
+# broker_instance.subscribe("users_events", broker.user_event_callback)
+broker_instance.publish_message("users_events", "ADD", {"service": settings.SERVICE_NAME})
 
 
 @app.get("/health", tags=["health"])

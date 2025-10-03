@@ -3,12 +3,14 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.logging import get_logger
-from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserResponse
-from app.services.http_client import HttpClientException
+from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse, \
+    DeleteUserResponse
 from app.services import users, auth
+from app.services.http_client import HttpClientException
 
 logger = get_logger(__name__)
 router = APIRouter()
+
 
 @router.post("/change_password", response_model=ChangePasswordResponse)
 async def change_password(passwords: ChangePasswordRequest, request: Request):
@@ -24,6 +26,7 @@ async def change_password(passwords: ChangePasswordRequest, request: Request):
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/change_password"})
 
+
 @router.patch("/", response_model=UpdateUserResponse)
 async def update_user_self(new_data: UpdateUserRequest, request: Request):
     try:
@@ -37,7 +40,8 @@ async def update_user_self(new_data: UpdateUserRequest, request: Request):
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/update_user_self"})
-        
+
+
 @router.patch("/{user_id}", response_model=UpdateUserResponse)
 async def update_user(user_id: int, new_data: UpdateUserRequest, request: Request):
     try:
@@ -52,7 +56,8 @@ async def update_user(user_id: int, new_data: UpdateUserRequest, request: Reques
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/update_user"})
-        
+
+
 @router.delete("/{user_id}", response_model=DeleteUserResponse)
 async def delete_user(user_id: int, request: Request):
     try:
@@ -67,3 +72,14 @@ async def delete_user(user_id: int, request: Request):
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/delete_user"})
+
+
+from app.services import broker
+
+
+@router.get("/testrabbit")
+async def test_rabbitmq(request: Request):
+    broker_instance = broker.BrokerSingleton()
+
+    broker_instance.publish_message("users_events", "ADD", {})
+    return {"message": "Message sent to RabbitMQ"}
