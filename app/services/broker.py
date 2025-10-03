@@ -23,7 +23,7 @@ class BrokerSingleton:
             logger.info("Starting broker consumer...")
             cls._instance = super().__new__(cls)
             cls.exchanges = {}
-            return cls._instance
+        return cls._instance
 
     def __init__(self, service_name: str = settings.SERVICE_NAME):
         self.service_name = service_name
@@ -66,6 +66,11 @@ class BrokerSingleton:
         stop_event = threading.Event()
         self._stop_events[key] = stop_event
 
+        def wrapped_callback(ch, method, properties, body):
+            callback(ch, method, properties, body)
+            if stop_event.is_set():
+                ch.stop_consuming()
+
         def consume():
             connection = self.create_connection()
             if connection is None:
@@ -81,11 +86,10 @@ class BrokerSingleton:
             )
             queue_name = queue_result.method.queue
             channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
-            channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
+            channel.basic_consume(queue=queue_name, on_message_callback=wrapped_callback, auto_ack=True)
             logger.info(f"Subscribed to exchange {exchange_name} with routing key '{routing_key}'")
             try:
-                while not stop_event.is_set():
-                    channel.connection.process_data_events(time_limit=1)
+                channel.start_consuming()
             except Exception as e:
                 logger.info(f"Stopped consuming for exchange {exchange_name}: {e}")
             finally:
