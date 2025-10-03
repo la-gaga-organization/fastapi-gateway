@@ -63,13 +63,13 @@ current_router.include_router(
 app.include_router(current_router, prefix="/api/v1")
 
 # RabbitMQ Broker
-def callback(ch, method, properties, body):
-    print(f"Received message from exchange '{method.exchange}' with routing key '{method.routing_key}': {body.decode()}")
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+async def callback(message):
+    async with message.process():
+        print(f"Received message from exchange '{message.exchange}' with routing key '{message.routing_key}': {message.body.decode()}")
 
 exchanges = {
-    "users" : callback(),
-    "banana" : callback()
+    "users": callback,
+    "banana": callback
 }
 
 broker.declare_services_exchanges(exchanges)
