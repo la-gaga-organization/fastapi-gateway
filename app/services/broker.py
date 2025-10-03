@@ -147,6 +147,9 @@ class BrokerSingleton:
             )
         )
 
+        channel.close()
+        connection.close()
+
         logger.info(f"Sent message to exchange {exchange_name}. Type: {event_type}")
 
     def close(self):
