@@ -40,26 +40,29 @@ async def lifespan(app: FastAPI):
     logger = get_logger(__name__)
     logger.info(f"Starting {settings.SERVICE_NAME}...")
 
-    # Avvia il broker asincrono
+    # Avvia il broker asincrono all'avvio dell'app
     broker_instance = broker.AsyncBrokerSingleton()
     await broker_instance.connect()
     for exchange, cb in exchanges.items():
         await broker_instance.subscribe(exchange, cb)
+
     yield
+
+    logger.info(f"Shutting down {settings.SERVICE_NAME}...")
     await broker_instance.close()
-    logger.info(f"Broker {broker_instance} closed")
+    logger.info("RabbitMQ connection closed.")
+
+docs_url = None if settings.ENVIRONMENT == "production" else "/docs"
+redoc_url = None if settings.ENVIRONMENT == "production" else "/redoc"
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
     default_response_class=ORJSONResponse,
     version=settings.SERVICE_VERSION,
     lifespan=lifespan,
-
+    docs_url=docs_url,
+    redoc_url=redoc_url,
 )
-if settings.ENVIRONMENT == "production":
-    app = FastAPI(docs_url=None, redoc_url=None)  # nascondo la documentazione
-else:
-    app = FastAPI(docs_url="/docs", redoc_url="/redoc")
 
 # Routers
 current_router = APIRouter()
