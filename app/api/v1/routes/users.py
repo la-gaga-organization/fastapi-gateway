@@ -16,12 +16,18 @@ router = APIRouter()
 async def change_password(passwords: ChangePasswordRequest, request: Request):
     try:
         payload = await auth.verify_token(request.headers.get("Authorization").replace("Bearer ", "").strip())
-        return await users.change_password(passwords, payload["user_id"])
+        changed = await users.change_password(passwords, payload["user_id"])
+        if changed:
+            return ChangePasswordResponse()
+        else:
+            raise HTTPException(status_code=400, detail={"message": "Password change failed",
+                                                        "stack": "Couldn't change the password",
+                                                        "url": "users/change_password"})
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during change_password: {str(e)}")
+        logger.error(f"Unexpected error during change_password: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/change_password"})
@@ -36,7 +42,7 @@ async def update_user_self(new_data: UpdateUserRequest, request: Request):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during self user update: {str(e)}")
+        logger.error(f"Unexpected error during self user update: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/update_user_self"})
@@ -52,7 +58,7 @@ async def update_user(user_id: int, new_data: UpdateUserRequest, request: Reques
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during user update: {str(e)}")
+        logger.error(f"Unexpected error during user update: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/update_user"})
@@ -68,7 +74,7 @@ async def delete_user(user_id: int, request: Request):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during user deletion: {str(e)}")
+        logger.error(f"Unexpected error during user deletion: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "users/delete_user"})

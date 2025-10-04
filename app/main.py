@@ -11,7 +11,7 @@ from app.api.v1.routes import auth, users
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.db.base import import_models
-from app.services import broker
+from app.services import broker, users as users_service
 
 import_models()  # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 
@@ -26,13 +26,8 @@ logger = None
 
 # RabbitMQ Broker
 
-async def callback(message):
-    async with message.process():
-        print(f"Received message from exchange '{message.exchange}' with routing key '{message.routing_key}': {message.body.decode()}")
-
 exchanges = {
-    "users": callback,
-    "banana": callback
+    "users": users_service.update_from_rabbitMQ,
 }
 
 @asynccontextmanager

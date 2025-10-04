@@ -174,4 +174,9 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
             raise HttpClientException(f"HTTP Error {resp.status_code}", server_message=server_message,
                                       url=url, status_code=resp.status_code)
 
-        return HttpClientResponse(status_code=resp.status_code, data=resp.json())
+        json_data = None
+        try:
+            json_data = resp.json()
+        except Exception:
+            pass
+        return HttpClientResponse(status_code=resp.status_code, data=json_data)

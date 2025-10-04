@@ -1,13 +1,21 @@
+import json
+
 from passlib.context import CryptContext
 
 from app.core.logging import get_logger
 from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserResponse
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
+from app.db.session import get_db
+from app.models.user import User
+from datetime import datetime
 
 logger = get_logger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+RABBIT_DELETE_TYPE = "DELETE"
+RABBIT_UPDATE_TYPE = "UPDATE"
+RABBIT_CREATE_TYPE = "CREATE"
 
 async def change_password(passwords: ChangePasswordRequest, user_id: int) -> ChangePasswordResponse:
     try:
@@ -21,8 +29,7 @@ async def change_password(passwords: ChangePasswordRequest, user_id: int) -> Cha
             endpoint="/users/change_password",
             _params=params
         )
-
-        return ChangePasswordResponse()
+        return True
     except HttpClientException as e:
         logger.error(f"Errore change_password: {e}")
         raise
@@ -66,3 +73,56 @@ async def delete_user(user_id: int) -> DeleteUserResponse:
     except Exception:
         raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
                                   "users/delete_user")
+
+
+async def update_from_rabbitMQ(message):
+    async with message.process():
+        try:
+            db = next(get_db())
+            response = message.body.decode()
+            json_response = json.loads(response)
+            msg_type = json_response["type"]
+            data = json_response["data"]
+
+            logger.info(f"Received message from RabbitMQ: {msg_type} - {data}")
+
+            user = db.query(User).filter(User.id == data["id"]).first()
+            if msg_type == RABBIT_UPDATE_TYPE:
+                if user is None:
+                    user = User(
+                        id=data["id"],
+                        username=data["username"],
+                        email=data["email"],
+                        name=data["name"],
+                        surname=data["surname"],
+                        hashed_password=data["hashed_password"],
+                        created_at=datetime.fromisoformat(data["created_at"]),
+                        updated_at=datetime.fromisoformat(data["updated_at"])
+                    )
+                    db.add(user)
+                    db.commit()
+                    logger.error(f"User with id {data['id']} not found during update. Created new user.")
+                    return
+                user.username = data["username"]
+                user.email = data["email"]
+                user.name = data["name"]
+                user.surname = data["surname"]
+                user.hashed_password = data["hashed_password"]
+                user.updated_at = datetime.fromisoformat(data["updated_at"])
+                db.commit()
+
+            elif msg_type == RABBIT_DELETE_TYPE:
+                if user:
+                    db.delete(user)
+                    db.commit()
+                else:
+                    logger.error(f"User with id {data['id']} not found during delete.")
+
+            elif msg_type == RABBIT_CREATE_TYPE:
+                pass
+            else:
+                logger.error(f"Unsupported message type: {type}")
+        except HttpClientException as e:
+            logger.error(f"Errore update_from_rabbitMQ: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error during update_from_rabbitMQ: {e}")

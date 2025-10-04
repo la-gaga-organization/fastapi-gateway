@@ -22,7 +22,7 @@ async def login(user: UserLogin):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during login: {str(e)}")
+        logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "auth/login"})
@@ -36,7 +36,7 @@ async def post_refresh_token(refresh_token: TokenRequest):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during token refresh: {str(e)}")
+        logger.error(f"Unexpected error during token refresh: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "auth/refresh"})
@@ -54,7 +54,7 @@ async def logout(access_token: TokenRequest):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during logout: {str(e)}")
+        logger.error(f"Unexpected error during logout: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "auth/logout"})
@@ -68,7 +68,7 @@ async def register(user: UserRegistration):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "stack": e.server_message, "url": e.url})
     except Exception as e:
-        logger.error(f"Unexpected error during registration: {str(e)}")
+        logger.error(f"Unexpected error during registration: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail={"message": "Internal Server Error",
                                                      "stack": "Swiggity Swoggity, U won't find my log",
                                                      "url": "auth/register"})
