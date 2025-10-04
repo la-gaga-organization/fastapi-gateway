@@ -15,7 +15,7 @@ from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, H
 
 logger = get_logger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 # Custom exception per invalid credentials

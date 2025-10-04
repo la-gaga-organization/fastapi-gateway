@@ -11,7 +11,7 @@ from datetime import datetime
 
 logger = get_logger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 RABBIT_DELETE_TYPE = "DELETE"
 RABBIT_UPDATE_TYPE = "UPDATE"
@@ -21,8 +21,8 @@ async def change_password(passwords: ChangePasswordRequest, user_id: int) -> Cha
     try:
         params = HttpParams()
         params.add_param("user_id", user_id)
-        params.add_param("old_password", passwords.old_password)
-        params.add_param("new_password", passwords.new_password)
+        params.add_param("old_password", pwd_context.hash(passwords.old_password))
+        params.add_param("new_password", pwd_context.hash(passwords.new_password))
         await send_request(
             method=HttpMethod.POST,
             url=HttpUrl.USERS_SERVICE,
