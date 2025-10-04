@@ -15,7 +15,13 @@ router = APIRouter()
 @router.post("/change_password", response_model=ChangePasswordResponse)
 async def change_password(passwords: ChangePasswordRequest, request: Request):
     try:
-        payload = await auth.verify_token(request.headers.get("Authorization").replace("Bearer ", "").strip())
+        token = request.headers.get("Authorization")
+        if not token:
+            raise HTTPException(status_code=401, detail={"message": "Unauthorized",
+                                                        "stack": "Missing Authorization header",
+                                                        "url": "users/change_password"})
+        token = token.replace("Bearer ", "").strip()
+        payload = await auth.verify_token(token)
         changed = await users.change_password(passwords, payload["user_id"])
         if changed:
             return ChangePasswordResponse()
@@ -36,7 +42,13 @@ async def change_password(passwords: ChangePasswordRequest, request: Request):
 @router.patch("/", response_model=UpdateUserResponse)
 async def update_user_self(new_data: UpdateUserRequest, request: Request):
     try:
-        payload = await auth.verify_token(request.headers.get("Authorization").replace("Bearer ", "").strip())
+        token = request.headers.get("Authorization")
+        if not token:
+            raise HTTPException(status_code=401, detail={"message": "Unauthorized",
+                                                        "stack": "Missing Authorization header",
+                                                        "url": "users/change_password"})
+        token = token.replace("Bearer ", "").strip()
+        payload = await auth.verify_token(token)
         return await users.update_user(payload["user_id"], new_data)
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code,
@@ -52,7 +64,13 @@ async def update_user_self(new_data: UpdateUserRequest, request: Request):
 async def update_user(user_id: int, new_data: UpdateUserRequest, request: Request):
     try:
         # TODO: verificare che l'utente abbia i permessi per modificare un altro utente
-        await auth.verify_token(request.headers.get("Authorization").replace("Bearer ", "").strip())
+        token = request.headers.get("Authorization")
+        if not token:
+            raise HTTPException(status_code=401, detail={"message": "Unauthorized",
+                                                        "stack": "Missing Authorization header",
+                                                        "url": "users/change_password"})
+        token = token.replace("Bearer ", "").strip()
+        await auth.verify_token(token)
         return await users.update_user(user_id, new_data)
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code,
@@ -68,7 +86,13 @@ async def update_user(user_id: int, new_data: UpdateUserRequest, request: Reques
 async def delete_user(user_id: int, request: Request):
     try:
         # TODO: verificare che l'utente abbia i permessi per eliminare un altro utente
-        await auth.verify_token(request.headers.get("Authorization").replace("Bearer ", "").strip())
+        token = request.headers.get("Authorization")
+        if not token:
+            raise HTTPException(status_code=401, detail={"message": "Unauthorized",
+                                                        "stack": "Missing Authorization header",
+                                                        "url": "users/change_password"})
+        token = token.replace("Bearer ", "").strip()
+        await auth.verify_token(token)
         return await users.delete_user(user_id)
     except HttpClientException as e:
         raise HTTPException(status_code=e.status_code,
