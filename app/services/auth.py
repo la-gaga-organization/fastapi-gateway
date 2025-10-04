@@ -309,7 +309,7 @@ async def logout(access_token: TokenRequest):
 
 async def register(user: UserRegistration) -> TokenResponse:
     # TODO: Valutare l'hashing della password prima di inviarla al servizio utenti
-    # hashed_password = pwd_context.hash(user.password)
+    hashed_password = pwd_context.hash(user.password)
 
     create_user_response = await create_new_user(
         data={"username": user.username, "name": user.name, "surname": user.surname, "email": user.email,
@@ -324,12 +324,15 @@ async def register(user: UserRegistration) -> TokenResponse:
     db = next(get_db())
     user = User(
         id=create_user_response["id"],
-        username=create_user_response["username"],
-        email=create_user_response["email"],
-        hashed_password="",
+        username=UserRegistration.username,
+        email=UserRegistration.email,
+        hashed_password=hashed_password,
         created_at=create_user_response["created_at"],
         updated_at=create_user_response["updated_at"]
     )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return await create_user_session_and_tokens(user)
 
 
