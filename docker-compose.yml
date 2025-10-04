@@ -6,7 +6,7 @@ services:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: pass
     networks:
-      - micro_net
+      - rabbit_net
 
   gateway-migrate:
     build: .
@@ -29,7 +29,7 @@ services:
       - gateway-migrate
     networks:
       - gateway_net
-      - micro_net
+      - rabbit_net
     restart: unless-stopped
 
   gateway_db:
@@ -49,5 +49,5 @@ volumes:
 
 networks:
   gateway_net:
-  micro_net:
+  rabbit_net:
     driver: bridge
