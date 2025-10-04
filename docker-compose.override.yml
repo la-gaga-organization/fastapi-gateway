@@ -11,3 +11,7 @@ services:
   gateway:
     build: .
     env_file: .env
+
+  gateway_db:
+    ports:
+      - "5432:5432"
