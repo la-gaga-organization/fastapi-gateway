@@ -324,8 +324,8 @@ async def register(user: UserRegistration) -> TokenResponse:
     db = next(get_db())
     user = User(
         id=create_user_response["id"],
-        username=UserRegistration.username,
-        email=UserRegistration.email,
+        username=user.username,
+        email=user.email,
         hashed_password=hashed_password,
         created_at=create_user_response["created_at"],
         updated_at=create_user_response["updated_at"]
