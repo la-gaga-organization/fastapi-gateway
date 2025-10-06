@@ -19,10 +19,14 @@ RABBIT_CREATE_TYPE = "CREATE"
 
 async def change_password(passwords: ChangePasswordRequest, user_id: int) -> ChangePasswordResponse:
     try:
+        old_password_hashed = pwd_context.hash(passwords.old_password)
+        new_password_hashed = pwd_context.hash(passwords.new_password)
+        logger.info(f"Old: {old_password_hashed}")
+        logger.info(f"New: {new_password_hashed}")
         params = HttpParams()
         params.add_param("user_id", user_id)
-        params.add_param("old_password", pwd_context.hash(passwords.old_password))
-        params.add_param("new_password", pwd_context.hash(passwords.new_password))
+        params.add_param("old_password", old_password_hashed)
+        params.add_param("new_password", new_password_hashed)
         await send_request(
             method=HttpMethod.POST,
             url=HttpUrl.USERS_SERVICE,

@@ -201,9 +201,9 @@ async def create_user_session_and_tokens(user: User) -> TokenResponse:
 async def login(user_login: UserLogin):
     db = next(get_db())
     try:
-        user = db.query(User).filter(User.username == user_login.username).first()
+        user = db.query(User).filter(User.email == user_login.email).first()
         if not user or not verify_password(user_login.password, str(user.hashed_password)):
-            raise InvalidCredentialsException("Invalid credentials")
+            raise InvalidCredentialsException("User not found")
         return await create_user_session_and_tokens(user)
     except InvalidCredentialsException as e:
         raise e
@@ -308,7 +308,6 @@ async def logout(access_token: TokenRequest):
 
 
 async def register(user: UserRegistration) -> TokenResponse:
-    # TODO: Valutare l'hashing della password prima di inviarla al servizio utenti
     hashed_password = pwd_context.hash(user.password)
 
     create_user_response = await create_new_user(
