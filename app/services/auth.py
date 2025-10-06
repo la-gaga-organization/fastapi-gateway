@@ -202,7 +202,7 @@ async def login(user_login: UserLogin):
     db = next(get_db())
     try:
         user = db.query(User).filter(User.email == user_login.email).first()
-        if not user or not verify_password(user_login.password, str(user.hashed_password)):
+        if not user or not verify_password(user_login.password, user.hashed_password):
             raise InvalidCredentialsException("User not found")
         return await create_user_session_and_tokens(user)
     except InvalidCredentialsException as e:
