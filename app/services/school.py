@@ -1,0 +1,80 @@
+from datetime import datetime, timedelta
+from typing import Optional
+
+from jose import jwt
+from passlib.context import CryptContext
+
+from app.core.config import settings
+from app.db.session import get_db
+from app.models.accessToken import AccessToken
+from app.models.refreshToken import RefreshToken
+from app.models.session import Session
+from app.models.user import User
+from app.schemas.auth import UserLogin, TokenResponse, TokenRequest
+from app.schemas.school import SchoolsList
+from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+async def get_schools(
+        limit: int = 10,
+        offset: int = 0,
+        search: Optional[str] = None,
+        citta: Optional[str] = None,
+        provincia: Optional[str] = None,
+        indirizzo: Optional[str] = None,
+        sort_by: str = "name",
+        order: str = "asc"
+) -> SchoolsList:
+    """
+    Recupera la lista delle scuole con opzioni di paginazione e filtro.
+
+    Args:
+        limit (int): Numero massimo di scuole da restituire.
+        offset (int): Numero di scuole da saltare per la paginazione.
+        search (Optional[str]): Termine di ricerca per filtrare le scuole per nome.
+        citta (Optional[str]): Filtra per città.
+        provincia (Optional[str]): Filtra per provincia.
+        indirizzo (Optional[str]): Filtra per tipo di scuola (es. Liceo, informatico, ecc.).
+        sort_by (str): Campo per ordinamento (es. nome, città, provincia).
+        order (str): Ordine: 'asc' o 'desc'.
+
+    Returns:
+        SchoolsList: Lista delle scuole con metadati di paginazione.
+    """
+    try:
+        params = {
+            "limit": limit,
+            "offset": offset,
+            "search": search,
+            "citta": citta,
+            "provincia": provincia,
+            "indirizzo": indirizzo,
+            "sort_by": sort_by,
+            "order": order
+        }
+        # Rimuovo i parametri None
+        params = {k: v for k, v in params.items() if v is not None}
+
+        response = await send_request(
+            method=HttpMethod.GET,
+            url=HttpUrl.SCHOOL_SERVICE,
+            endpoint="/schools",
+            params=HttpParams(params)
+        )
+
+        return SchoolsList(**response)
+
+    except HttpClientException as e:
+        logger.error(f"Errore nella chiamata al servizio scuole: {e.message}")
+        raise
+    except Exception as e:
+        logger.error(f"Errore imprevisto: {str(e)}")
+        raise HttpClientException(
+            status_code=500,
+            message="Internal Server Error",
+            server_message=str(e),
+            url=str(HttpUrl.SCHOOL_SERVICE) + "/schools"
+        )

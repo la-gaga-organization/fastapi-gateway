@@ -22,6 +22,7 @@ class HttpMethod(str, Enum):
 class HttpUrl(str, Enum):
     TOKEN_SERVICE = settings.TOKEN_SERVICE_URL
     USERS_SERVICE = settings.USERS_SERVICE_URL
+    SCHOOL_SERVICE = settings.SCHOOL_SERVICE_URL
 
 
 class HttpParams():
@@ -80,6 +81,7 @@ class HttpHeaders():
         """
         return self.headers
 
+
 # Errori e risposte
 
 
@@ -111,7 +113,8 @@ class HttpClientResponse():
         self.data = data
 
 
-async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None, _headers: HttpHeaders = None) -> HttpClientResponse:
+async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None,
+                       _headers: HttpHeaders = None) -> HttpClientResponse:
     """Gestisce la risposta della richiesta HTTP.
 
     Ritorna HttpClientResponse o solleva HttpClientException in caso di errore.
@@ -150,10 +153,12 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                     raise ValueError(f"Unsupported HTTP method: {method}")
         except httpx.HTTPError as e:
             logger.error(f"HTTP request to {url} failed: {str(e)}")
-            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", url=url, status_code=500)
+            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
+                                      url=url, status_code=500)
         except Exception as e:
             logger.error(f"Unexpected error during HTTP request to {url}: {str(e)}")
-            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log", url=url, status_code=500)
+            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
+                                      url=url, status_code=500)
 
         if resp.status_code >= 400:
             json = resp.json()

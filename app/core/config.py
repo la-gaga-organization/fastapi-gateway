@@ -13,10 +13,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     API_PREFIX: str = "/api/v1"
-    
+
     #### ROUTES
     TOKEN_SERVICE_URL: str = "http://token:8002"
     USERS_SERVICE_URL: str = "http://users:8003"
+    SCHOOL_SERVICE_URL: str = "http://school:8004"
 
     model_config = SettingsConfigDict(
         env_file=".env",
