@@ -19,7 +19,6 @@ class SchoolBase(BaseModel):
     città: str
     provincia: str
     codice_postale: str
-    tipo_scuola: str
     email_contatto: EmailStr
     telefono_contatto: str
     indirizzi_scuola: List[SchoolAddress] = []
