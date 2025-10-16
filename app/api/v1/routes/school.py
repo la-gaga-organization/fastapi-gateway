@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi import Query
 
-from app.schemas.school import SchoolsList
+from app.schemas.school import SchoolsList, SchoolBase
 from app.services import school as school_service
 from app.services.http_client import HttpClientException
 
@@ -61,6 +61,43 @@ async def get_schools(
                 "message": "Parametri non validi",
                 "stack": str(e),
                 "url": None
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "Internal Server Error",
+                "stack": str(e),
+                "url": None
+            }
+        )
+
+
+@router.get("/{school_id}", response_model=SchoolBase)
+async def get_school(school_id: int):
+    """
+    Recupera i dettagli di una scuola specifica per ID.
+
+    Args:
+        school_id (int): ID della scuola da recuperare
+
+    Returns:
+        dict: Dettagli della scuola
+    """
+    try:
+        school = await school_service.get_school_by_id(school_id)
+        if not school:
+            raise HTTPException(status_code=404, detail="Scuola non trovata")
+        return school
+
+    except HttpClientException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={
+                "message": e.message,
+                "stack": e.server_message,
+                "url": e.url
             }
         )
     except Exception as e:

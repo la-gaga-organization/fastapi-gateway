@@ -1,19 +1,8 @@
-from datetime import datetime, timedelta
 from typing import Optional
 
-from jose import jwt
-from passlib.context import CryptContext
-
-from app.core.config import settings
-from app.db.session import get_db
-from app.models.accessToken import AccessToken
-from app.models.refreshToken import RefreshToken
-from app.models.session import Session
-from app.models.user import User
-from app.schemas.auth import UserLogin, TokenResponse, TokenRequest
+from app.core.logging import get_logger
 from app.schemas.school import SchoolsList
 from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
-from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -77,4 +66,36 @@ async def get_schools(
             message="Internal Server Error",
             server_message=str(e),
             url=str(HttpUrl.SCHOOL_SERVICE) + "/schools"
+        )
+
+
+async def get_school_by_id(school_id: int):
+    """
+    Recupera i dettagli di una scuola specifica tramite il suo ID.
+
+    Args:
+        school_id (int): ID della scuola da recuperare.
+
+    Returns:
+        dict: Dettagli della scuola.
+    """
+    try:
+        response = await send_request(
+            method=HttpMethod.GET,
+            url=HttpUrl.SCHOOL_SERVICE,
+            endpoint=f"/schools/{school_id}"
+        )
+
+        return response
+
+    except HttpClientException as e:
+        logger.error(f"Errore nella chiamata al servizio scuole: {e.message}")
+        raise
+    except Exception as e:
+        logger.error(f"Errore imprevisto: {str(e)}")
+        raise HttpClientException(
+            status_code=500,
+            message="Internal Server Error",
+            server_message=str(e),
+            url=str(HttpUrl.SCHOOL_SERVICE) + f"/schools/{school_id}"
         )
