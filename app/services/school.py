@@ -51,7 +51,7 @@ async def get_schools(
             method=HttpMethod.GET,
             url=HttpUrl.SCHOOL_SERVICE,
             endpoint="/schools",
-            params=HttpParams(params)
+            _params=HttpParams(params)
         )
 
         return SchoolsList(**response)
