@@ -14,6 +14,7 @@ class SchoolAddress(BaseModel):  # indirizzo di studio
 
 class SchoolBase(BaseModel):
     nome: str
+    tipo: str
     indirizzo: str
     città: str
     provincia: str
