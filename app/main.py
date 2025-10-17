@@ -49,9 +49,9 @@ current_router.include_router(
 )
 
 current_router.include_router(
-    prefix="/schools",
-    tags=["schools"],
-    router=schools.router,
+    prefix="/school",
+    tags=["school"],
+    router=school.router,
 )
 
 app.include_router(current_router, prefix="/api/v1")
