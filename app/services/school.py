@@ -57,7 +57,7 @@ async def get_schools(
             _params=HttpParams(params)
         )
 
-        return SchoolsList(**response)
+        return SchoolsList(**response.data)
 
     except HttpClientException as e:
         logger.error(f"Errore nella chiamata al servizio scuole: {e.message}")
