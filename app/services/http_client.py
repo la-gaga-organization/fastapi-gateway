@@ -24,7 +24,7 @@ class HttpMethod(str, Enum):
 class HttpUrl(str, Enum):
     TOKEN_SERVICE = settings.TOKEN_SERVICE_URL
     USERS_SERVICE = settings.USERS_SERVICE_URL
-    SCHOOL_SERVICE = settings.SCHOOLS_SERVICE_URL
+    SCHOOLS_SERVICE = settings.SCHOOLS_SERVICE_URL
 
 
 class HttpParams():
@@ -32,13 +32,14 @@ class HttpParams():
     Attributes:
         params (dict): Dizionario dei parametri della query.
     """
+
     def __init__(self, initial_params: dict | None = None):
         """Inizializza i parametri della richiesta HTTP.
 
         Args:
             initial_params (dict | None, optional): Parametri iniziali da includere nella richiesta. Defaults to None.
         """
-        if(initial_params is None):
+        if (initial_params is None):
             self.params = {}
         else:
             self.params = initial_params.copy()
@@ -140,6 +141,8 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
     """
 
     url = f"{url.value}{API_PREFIX}{endpoint}"
+    if not url.endswith("/"):
+        url += "/"
     async with httpx.AsyncClient(timeout=5.0) as client:
         headers = _headers.to_dict() if _headers else HttpHeaders().to_dict()
         params = _params.to_dict() if _params else {}
