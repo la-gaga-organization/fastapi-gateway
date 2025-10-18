@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+import sys
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-import sys
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import ORJSONResponse
 
-from app.api.v1.routes import auth, users
-from app.api.v1.routes import auth
-from app.api.v1.routes import school
+from app.api.v1.routes import auth, users, school
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.db.base import import_models
@@ -25,18 +23,38 @@ sentry_sdk.init(
 
 logger = None
 
-
 # RabbitMQ Broker
 
 exchanges = {
     "users": users_service.update_from_rabbitMQ,
 }
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    yield
+    logger = get_logger(__name__)
+    logger.info(f"Starting {settings.SERVICE_NAME}...")
 
+    # Avvia il broker asincrono all'avvio dell'app
+    broker_instance = broker.AsyncBrokerSingleton()
+    connected = await broker_instance.connect()
+    if (not connected):
+        logger.error("Could not connect to RabbitMQ. Exiting...")
+        sys.exit(1)
+
+    else:
+        logger.info("Connected to RabbitMQ.")
+        for exchange, cb in exchanges.items():
+            await broker_instance.subscribe(exchange, cb)
+    yield
+    logger.info(f"Shutting down {settings.SERVICE_NAME}...")
+    await broker_instance.close()
+    logger.info("RabbitMQ connection closed.")
+
+
+docs_url = None if settings.ENVIRONMENT == "production" else "/docs"
+redoc_url = None if settings.ENVIRONMENT == "production" else "/redoc"
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
@@ -69,6 +87,7 @@ current_router.include_router(
 )
 
 app.include_router(current_router, prefix="/api/v1")
+
 
 @app.get("/health", tags=["health"])
 def health():
