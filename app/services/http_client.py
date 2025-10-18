@@ -24,7 +24,7 @@ class HttpMethod(str, Enum):
 class HttpUrl(str, Enum):
     TOKEN_SERVICE = settings.TOKEN_SERVICE_URL
     USERS_SERVICE = settings.USERS_SERVICE_URL
-    SCHOOL_SERVICE = settings.SCHOOL_SERVICE_URL
+    SCHOOL_SERVICE = settings.SCHOOLS_SERVICE_URL
 
 
 class HttpParams():
