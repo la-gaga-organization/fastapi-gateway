@@ -52,7 +52,7 @@ async def get_schools(
 
         response = await send_request(
             method=HttpMethod.GET,
-            url=HttpUrl.SCHOOL_SERVICE,
+            url=HttpUrl.SCHOOLS_SERVICE,
             endpoint="/schools",
             _params=HttpParams(params)
         )
@@ -68,7 +68,7 @@ async def get_schools(
             status_code=500,
             message="Internal Server Error",
             server_message=str(e),
-            url=str(HttpUrl.SCHOOL_SERVICE) + "/schools"
+            url=str(HttpUrl.SCHOOLS_SERVICE) + "/schools"
         )
 
 
@@ -85,7 +85,7 @@ async def get_school_by_id(school_id: int):
     try:
         response = await send_request(
             method=HttpMethod.GET,
-            url=HttpUrl.SCHOOL_SERVICE,
+            url=HttpUrl.SCHOOLS_SERVICE,
             endpoint=f"/schools/{school_id}"
         )
 
@@ -100,5 +100,5 @@ async def get_school_by_id(school_id: int):
             status_code=500,
             message="Internal Server Error",
             server_message=str(e),
-            url=str(HttpUrl.SCHOOL_SERVICE) + f"/schools/{school_id}"
+            url=str(HttpUrl.SCHOOLS_SERVICE) + f"/schools/{school_id}"
         )
