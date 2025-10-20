@@ -141,7 +141,7 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
     """
 
     url = f"{url.value}{API_PREFIX}{endpoint}"
-    if not url.endswith("/"):
+    if not url.endswith("/") and _params is None:
         url += "/"
     async with httpx.AsyncClient(timeout=5.0) as client:
         headers = _headers.to_dict() if _headers else HttpHeaders().to_dict()
