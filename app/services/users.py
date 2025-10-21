@@ -4,7 +4,7 @@ from passlib.context import CryptContext
 
 from app.core.logging import get_logger
 from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse, DeleteUserResponse
-from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
+from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request
 from app.db.session import get_db
 from app.models.user import User
 from datetime import datetime
@@ -17,12 +17,10 @@ RABBIT_DELETE_TYPE = "DELETE"
 RABBIT_UPDATE_TYPE = "UPDATE"
 RABBIT_CREATE_TYPE = "CREATE"
 
-async def change_password(passwords: ChangePasswordRequest, user_id: int) -> ChangePasswordResponse:
+async def change_password(passwords: ChangePasswordRequest, user_id: int) -> bool:
     try:
         old_password_hashed = pwd_context.hash(passwords.old_password)
         new_password_hashed = pwd_context.hash(passwords.new_password)
-        logger.info(f"Old: {old_password_hashed}")
-        logger.info(f"New: {new_password_hashed}")
         params = HttpParams()
         params.add_param("user_id", user_id)
         params.add_param("old_password", old_password_hashed)
@@ -34,13 +32,10 @@ async def change_password(passwords: ChangePasswordRequest, user_id: int) -> Cha
             _params=params
         )
         return True
-    except HttpClientException as e:
-        logger.error(f"Errore change_password: {e}")
-        raise
+    except OrientatiException as e:
+        raise e
     except Exception as e:
-        logger.error(f"Unexpected error during change_password: {e}")
-        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
-                                  "users/change_password")
+        raise OrientatiException(exc=e, url="users/change_password")
 
 
 async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserResponse:
@@ -57,11 +52,10 @@ async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserRe
             _params=params
         )
         return UpdateUserResponse()
-    except HttpClientException:
-        raise
-    except Exception:
-        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
-                                  "users/update_user")
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(exc=e, url="users/update_user")
 
 async def delete_user(user_id: int) -> DeleteUserResponse:
     try:
@@ -72,11 +66,10 @@ async def delete_user(user_id: int) -> DeleteUserResponse:
             endpoint=f"/users/{user_id}"
         )
         return DeleteUserResponse()
-    except HttpClientException:
-        raise
-    except Exception:
-        raise HttpClientException("Internal Server Error", "Swiggity Swooty, U won't find my log", 500,
-                                  "users/delete_user")
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(exc=e, url="users/delete_user")
 
 
 async def update_from_rabbitMQ(message):
@@ -126,7 +119,5 @@ async def update_from_rabbitMQ(message):
                 pass
             else:
                 logger.error(f"Unsupported message type: {type}")
-        except HttpClientException as e:
-            logger.error(f"Errore update_from_rabbitMQ: {e}")
         except Exception as e:
-            logger.error(f"Unexpected error during update_from_rabbitMQ: {e}")
+            raise OrientatiException(exc=e, url="users/update_from_rabbitMQ")

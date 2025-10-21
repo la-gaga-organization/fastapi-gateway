@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from enum import Enum
 
+import traceback
 import httpx
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -20,6 +22,16 @@ class HttpMethod(str, Enum):
     DELETE = "DELETE"
     PATCH = "PATCH"
 
+class HttpCodes(int, Enum):
+    OK = 200
+    CREATED = 201
+    NO_CONTENT = 204
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    CONFLICT = 409
+    INTERNAL_SERVER_ERROR = 500
 
 class HttpUrl(str, Enum):
     TOKEN_SERVICE = settings.TOKEN_SERVICE_URL
@@ -92,23 +104,33 @@ class HttpHeaders():
 # Errori e risposte
 
 
-class HttpClientException(Exception):
-    """Eccezione personalizzata per errori nelle richieste HTTP.
+class OrientatiException(Exception):
+    """Eccezione personalizzata generica per l'applicazione Orientati.
     Attributes:
         status_code (int | None): Codice di stato HTTP della risposta, se disponibile.
-        server_message (str): Messaggio di errore restituito dal server.
+        message (str): Messaggio di errore generale.
+        details (dict | None): Dettaglio del messaggio di errore.
         url (str): URL della richiesta che ha causato l'errore.
+        exc (Exception | None): Eccezione originale, se presente.
     """
 
-    def __init__(self, message: str, server_message: str, status_code: int, url: str = None):
+    def __init__(self, message: str = "Internal Server Error", status_code: int = 500, details: dict | None = None, url: str = None, exc: Exception = None):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
-        self.server_message = server_message
+        self.details = details if details is not None else {"message": "Internal Server Error"}
         self.url = url
+        if not exc is None:
+            caller_stack = "".join(traceback.format_stack()[:-1])
+            logger.error("ERRORE!\n")
+            logger.error(f"Stack del richiamante:\n{caller_stack}")
+            if exc:
+                exc_tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+                logger.error(f"ECCEZIONE ORIGINALE:\n{exc_tb}")
 
 
-class HttpClientResponse():
+
+class OrientatiResponse(BaseModel):
     """Rappresenta la risposta di un client HTTP.
     Attributes:
         status_code (int): Codice di stato HTTP della risposta.
@@ -121,7 +143,7 @@ class HttpClientResponse():
 
 
 async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None,
-                       _headers: HttpHeaders = None) -> HttpClientResponse:
+                       _headers: HttpHeaders = None) -> OrientatiResponse:
     """Gestisce la risposta della richiesta HTTP.
 
     Ritorna HttpClientResponse o solleva HttpClientException in caso di errore.
@@ -161,26 +183,28 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                 case _:
                     raise ValueError(f"Unsupported HTTP method: {method}")
         except httpx.HTTPError as e:
-            logger.error(f"HTTP request to {url} failed: {str(e)}")
-            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
-                                      url=url, status_code=500)
+            raise OrientatiException(exc=e, message="HTTP Error. Unable to fetch.", url=url)
         except Exception as e:
-            logger.error(f"Unexpected error during HTTP request to {url}: {str(e)}")
-            raise HttpClientException("Internal Server Error", server_message="Swiggity Swoggity, U won't find my log",
-                                      url=url, status_code=500)
+            raise OrientatiException(exc=e, url=url)
 
         if resp.status_code >= 400:
             json = resp.json()
+
+            if json["message"]:
+                general_message = json["message"]
+            else:
+                general_message = f"HTTP Error {resp.status_code}"
+
             if json["detail"]:
                 server_message = json["detail"]
             else:
-                server_message = resp.text
-            raise HttpClientException(f"HTTP Error {resp.status_code}", server_message=server_message,
+                server_message = {"message":resp.text}
+            raise OrientatiException(message=general_message, details=server_message,
                                       url=url, status_code=resp.status_code)
 
         json_data = None
         try:
-            json_data = resp.json()
-        except Exception:
-            pass
-        return HttpClientResponse(status_code=resp.status_code, data=json_data)
+            json_data = resp.json()["data"]
+        except Exception as e:
+            raise OrientatiException(message="Invalid JSON response", url=url, exc=e)
+        return OrientatiResponse(status_code=resp.status_code, data=json_data)
