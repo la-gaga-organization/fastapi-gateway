@@ -128,22 +128,8 @@ class OrientatiException(Exception):
                 exc_tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
                 logger.error(f"ECCEZIONE ORIGINALE:\n{exc_tb}")
 
-
-
-class OrientatiResponse(BaseModel):
-    """Rappresenta la risposta di un client HTTP.
-    Attributes:
-        status_code (int): Codice di stato HTTP della risposta.
-        data (dict | list | str | None): Dati della risposta, se presenti.
-    """
-
-    def __init__(self, status_code: int, data: dict | list | str | None = None):
-        self.status_code = status_code
-        self.data = data
-
-
 async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None,
-                       _headers: HttpHeaders = None) -> OrientatiResponse:
+                       _headers: HttpHeaders = None) -> dict:
     """Gestisce la risposta della richiesta HTTP.
 
     Ritorna HttpClientResponse o solleva HttpClientException in caso di errore.
@@ -208,4 +194,4 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
             json_data = resp.json()
         except Exception as e:
             raise OrientatiException(message="Invalid JSON response", url=url, exc=e)
-        return OrientatiResponse(status_code=resp.status_code, data=json_data)
+        return json_data

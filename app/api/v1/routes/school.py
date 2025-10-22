@@ -5,9 +5,9 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi import Query
 
-from app.schemas.school import SchoolsList, SchoolBase, SchoolGet
+from app.schemas.school import SchoolsList, SchoolBase
 from app.services import school as school_service
-from app.services.http_client import OrientatiException, OrientatiResponse
+from app.services.http_client import OrientatiException
 
 router = APIRouter()
 
@@ -50,7 +50,7 @@ async def get_schools(
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.get("/{school_id}", response_model=SchoolGet)
+@router.get("/{school_id}", response_model=SchoolBase)
 async def get_school(school_id: int):
     """
     Recupera i dettagli di una scuola specifica per ID.
@@ -70,7 +70,7 @@ async def get_school(school_id: int):
                 details={"message": f"School with ID {school_id} not found"},
                 url=f"/schools/{school_id}"
             )
-        return SchoolGet(school)
+        return school
 
 
     except OrientatiException as e:
