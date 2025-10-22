@@ -5,9 +5,9 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi import Query
 
-from app.schemas.school import SchoolsList, SchoolBase
+from app.schemas.school import SchoolsList, SchoolBase, SchoolGet
 from app.services import school as school_service
-from app.services.http_client import HttpClientException
+from app.services.http_client import OrientatiException, OrientatiResponse
 
 router = APIRouter()
 
@@ -45,38 +45,12 @@ async def get_schools(
             order=order
         )
 
+    except OrientatiException as e:
+        raise HTTPException(status_code=e.status_code,
+                            detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-    except HttpClientException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={
-                "message": e.message,
-                "stack": e.server_message,
-                "url": e.url
-            }
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "message": "Parametri non validi",
-                "stack": str(e),
-                "url": None
-            }
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "message": "Internal Server Error",
-                "stack": str(e),
-                "url": None
-            }
-        )
-
-
-@router.get("/{school_id}", response_model=SchoolBase)
+@router.get("/{school_id}", response_model=SchoolGet)
 async def get_school(school_id: int):
     """
     Recupera i dettagli di una scuola specifica per ID.
@@ -90,24 +64,16 @@ async def get_school(school_id: int):
     try:
         school = await school_service.get_school_by_id(school_id)
         if not school:
-            raise HTTPException(status_code=404, detail="Scuola non trovata")
-        return school
+            raise OrientatiException(
+                status_code=404,
+                message="School not found",
+                details={"message": f"School with ID {school_id} not found"},
+                url=f"/schools/{school_id}"
+            )
+        return SchoolGet(school)
 
-    except HttpClientException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={
-                "message": e.message,
-                "stack": e.server_message,
-                "url": e.url
-            }
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "message": "Internal Server Error",
-                "stack": str(e),
-                "url": None
-            }
-        )
+
+    except OrientatiException as e:
+        raise HTTPException(status_code=e.status_code,
+                            detail={"message": e.message, "details": e.details, "url": e.url})
+

@@ -2,7 +2,7 @@ from typing import Optional
 
 from app.core.logging import get_logger
 from app.schemas.school import SchoolsList
-from app.services.http_client import HttpClientException, HttpMethod, HttpUrl, HttpParams, send_request
+from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request
 
 logger = get_logger(__name__)
 
@@ -59,17 +59,10 @@ async def get_schools(
 
         return SchoolsList(**response.data)
 
-    except HttpClientException as e:
-        logger.error(f"Errore nella chiamata al servizio scuole: {e.message}")
-        raise
+    except OrientatiException as e:
+        raise e
     except Exception as e:
-        logger.error(f"Errore imprevisto: {str(e)}")
-        raise HttpClientException(
-            status_code=500,
-            message="Internal Server Error",
-            server_message=str(e),
-            url=str(HttpUrl.SCHOOLS_SERVICE) + "/schools"
-        )
+        raise OrientatiException(url="/auth/register", exc=e)
 
 
 async def get_school_by_id(school_id: int):
@@ -91,14 +84,7 @@ async def get_school_by_id(school_id: int):
 
         return response
 
-    except HttpClientException as e:
-        logger.error(f"Errore nella chiamata al servizio scuole: {e.message}")
-        raise
+    except OrientatiException as e:
+        raise e
     except Exception as e:
-        logger.error(f"Errore imprevisto: {str(e)}")
-        raise HttpClientException(
-            status_code=500,
-            message="Internal Server Error",
-            server_message=str(e),
-            url=str(HttpUrl.SCHOOLS_SERVICE) + f"/schools/{school_id}"
-        )
+        raise OrientatiException(url="/auth/register", exc=e)
