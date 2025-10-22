@@ -120,13 +120,12 @@ class OrientatiException(Exception):
         self.status_code = status_code
         self.details = details if details is not None else {"message": "Internal Server Error"}
         self.url = url
-        if not exc is None:
-            caller_stack = "".join(traceback.format_stack()[:-1])
-            logger.error("ERRORE!\n")
-            logger.error(f"Stack del richiamante:\n{caller_stack}")
-            if exc:
-                exc_tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-                logger.error(f"ECCEZIONE ORIGINALE:\n{exc_tb}")
+        caller_stack = "".join(traceback.format_stack()[:-1])
+        logger.error("ERRORE!\n")
+        logger.error(f"Stack del richiamante:\n{caller_stack}")
+        if exc is not None:
+            exc_tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+            logger.error(f"ECCEZIONE ORIGINALE:\n{exc_tb}")
 
 async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params: HttpParams = None,
                        _headers: HttpHeaders = None) -> dict:
