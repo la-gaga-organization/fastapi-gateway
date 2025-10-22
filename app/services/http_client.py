@@ -204,7 +204,8 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
 
         json_data = None
         try:
-            json_data = resp.json()["data"]
+            # I microservizi riportano i dati direttamente in un {}
+            json_data = resp.json()
         except Exception as e:
             raise OrientatiException(message="Invalid JSON response", url=url, exc=e)
         return OrientatiResponse(status_code=resp.status_code, data=json_data)
