@@ -3,16 +3,15 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.logging import get_logger
-from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, UpdateUserResponse, \
-    DeleteUserResponse
+from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, DeleteUserResponse
 from app.services import users, auth
-from app.services.http_client import HttpClientException, OrientatiResponse, OrientatiException, HttpCodes
+from app.services.http_client import OrientatiException, HttpCodes
 
 logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.post("/change_password", response_model=OrientatiResponse)
+@router.post("/change_password", response_model=ChangePasswordResponse)
 async def change_password(passwords: ChangePasswordRequest, request: Request):
     try:
         token = request.headers.get("Authorization")
@@ -40,7 +39,7 @@ async def change_password(passwords: ChangePasswordRequest, request: Request):
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.patch("/", response_model=OrientatiResponse)
+@router.patch("/", response_model=UpdateUserRequest)
 async def update_user_self(new_data: UpdateUserRequest, request: Request):
     try:
         token = request.headers.get("Authorization")
@@ -59,7 +58,7 @@ async def update_user_self(new_data: UpdateUserRequest, request: Request):
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.patch("/{user_id}", response_model=OrientatiResponse)
+@router.patch("/{user_id}", response_model=UpdateUserRequest)
 async def update_user(user_id: int, new_data: UpdateUserRequest, request: Request):
     try:
         # TODO: verificare che l'utente abbia i permessi per modificare un altro utente
@@ -79,7 +78,7 @@ async def update_user(user_id: int, new_data: UpdateUserRequest, request: Reques
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.delete("/{user_id}", response_model=OrientatiResponse)
+@router.delete("/{user_id}", response_model=DeleteUserResponse)
 async def delete_user(user_id: int, request: Request):
     try:
         # TODO: verificare che l'utente abbia i permessi per eliminare un altro utente
@@ -98,12 +97,10 @@ async def delete_user(user_id: int, request: Request):
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
-from app.services import broker
-
-@router.get("/testrabbit")
-async def test_rabbitmq(request: Request):
-    broker_instance = broker.AsyncBrokerSingleton()
-    await broker_instance.connect()
-    await broker_instance.publish_message("users", "ADD", {})
-    await broker_instance.publish_message("banana", "ADD", {})
-    return {"message": "Message sent to RabbitMQ"}
+# @router.get("/testrabbit")
+# async def test_rabbitmq(request: Request):
+#    broker_instance = broker.AsyncBrokerSingleton()
+#    await broker_instance.connect()
+#    await broker_instance.publish_message("users", "ADD", {})
+#    await broker_instance.publish_message("banana", "ADD", {})
+#    return {"message": "Message sent to RabbitMQ"}

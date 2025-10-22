@@ -10,7 +10,8 @@ from app.services.http_client import OrientatiException, OrientatiResponse
 logger = get_logger(__name__)
 router = APIRouter()
 
-@router.post("/login", response_model=OrientatiResponse)
+
+@router.post("/login", response_model=TokenResponse)
 async def login(user: UserLogin):
     try:
         return await auth.login(user)
@@ -19,7 +20,7 @@ async def login(user: UserLogin):
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.post("/refresh", response_model=OrientatiResponse)
+@router.post("/refresh", response_model=TokenResponse)
 async def post_refresh_token(refresh_token: TokenRequest):
     try:
         return await auth.refresh_token(refresh_token)
@@ -28,7 +29,7 @@ async def post_refresh_token(refresh_token: TokenRequest):
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.post("/logout", response_model=OrientatiResponse)
+@router.post("/logout")
 async def logout(access_token: TokenRequest):
     try:
         return await auth.logout(access_token)
@@ -37,7 +38,7 @@ async def logout(access_token: TokenRequest):
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.post("/register", response_model=OrientatiResponse)
+@router.post("/register", response_model=TokenResponse)
 async def register(user: UserRegistration):
     try:
         return await auth.register(user)
