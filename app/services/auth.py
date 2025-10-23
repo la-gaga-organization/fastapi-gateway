@@ -10,9 +10,8 @@ from app.models.accessToken import AccessToken
 from app.models.refreshToken import RefreshToken
 from app.models.session import Session
 from app.models.user import User
-from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration
-from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request, HttpCodes, \
-    OrientatiResponse
+from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration, UserLogout
+from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request, HttpCodes
 
 logger = get_logger(__name__)
 
@@ -213,9 +212,7 @@ async def login(user_login: UserLogin) -> TokenResponse:
         if not user or not verify_password(user_login.password, user.hashed_password):
             raise InvalidCredentialsException("Invalid Credentials")
         return await create_user_session_and_tokens(user)
-    except InvalidCredentialsException as e:
-        raise e
-    except OrientatiException as e:
+    except (InvalidCredentialsException, OrientatiException) as e:
         raise e
     except Exception as e:
         raise OrientatiException(url="/auth/login", exc=e)
@@ -286,15 +283,13 @@ async def refresh_token(refresh_token: TokenRequest) -> TokenResponse:
         db.refresh(db_refresh_token)
 
         return TokenResponse(status_code=HttpCodes.CREATED,access_token=access_token, refresh_token=refresh_token)
-    except InvalidTokenException as e:
-        raise e
-    except OrientatiException as e:
+    except (InvalidTokenException, OrientatiException) as e:
         raise e
     except Exception as e:
         raise OrientatiException(url="/auth/refresh", exc=e)
 
 
-async def logout(access_token: TokenRequest) -> OrientatiResponse:
+async def logout(access_token: TokenRequest) -> UserLogout:
     try:
         payload = await verify_token(access_token.token)
         if not payload or not payload["verified"]:
@@ -318,10 +313,8 @@ async def logout(access_token: TokenRequest) -> OrientatiResponse:
         db.query(RefreshToken).filter(RefreshToken.session_id == session.id).update({"is_expired": True})
         db.commit()
 
-        return OrientatiResponse(status_code=HttpCodes.OK, data={"message": "Logout successful"})
-    except (InvalidTokenException, InvalidSessionException) as e:
-        raise e
-    except OrientatiException as e:
+        return UserLogout()
+    except (InvalidTokenException, InvalidSessionException, OrientatiException) as e:
         raise e
     except Exception as e:
         raise OrientatiException(url="/auth/logout", exc=e)
@@ -390,9 +383,7 @@ async def validate_session(access_token: str) -> None:
                 raise InvalidTokenException("Access token expired", InvalidTokenErrorType.EXPIRED_SESSION)
             else:
                 raise InvalidTokenException("Access token is of an expired session", InvalidTokenErrorType.EXPIRED_SESSION)
-    except InvalidTokenException as e:
-        raise e
-    except OrientatiException as e:
+    except (InvalidTokenException, OrientatiException ) as e:
         raise e
     except Exception as e:
         raise OrientatiException(url="/auth/validate_session", exc=e)

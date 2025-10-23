@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from app.core.logging import get_logger
-from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration
+from app.schemas.auth import UserLogin, TokenResponse, TokenRequest, UserRegistration, UserLogout
 from app.services import auth
-from app.services.http_client import OrientatiException, OrientatiResponse
+from app.services.http_client import OrientatiException
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -29,7 +29,7 @@ async def post_refresh_token(refresh_token: TokenRequest):
                             detail={"message": e.message, "details": e.details, "url": e.url})
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=UserLogout)
 async def logout(access_token: TokenRequest):
     try:
         return await auth.logout(access_token)
