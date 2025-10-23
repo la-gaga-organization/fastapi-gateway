@@ -45,7 +45,7 @@ async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserRe
         params.add_param("email", new_data.email) if new_data.email else None
         params.add_param("name", new_data.name) if new_data.name else None
         params.add_param("surname", new_data.surname) if new_data.surname else None
-        response = await send_request(
+        await send_request(
             method=HttpMethod.PATCH,
             url=HttpUrl.USERS_SERVICE,
             endpoint=f"/users/{user_id}",
@@ -59,8 +59,7 @@ async def update_user(user_id: int, new_data: UpdateUserRequest) -> UpdateUserRe
 
 async def delete_user(user_id: int) -> DeleteUserResponse:
     try:
-        params = HttpParams()
-        response = await send_request(
+        await send_request(
             method=HttpMethod.DELETE,
             url=HttpUrl.USERS_SERVICE,
             endpoint=f"/users/{user_id}"

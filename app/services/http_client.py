@@ -174,18 +174,29 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
 
         if resp.status_code >= 400:
             json = resp.json()
+            logger.info(json)
 
-            if json["message"]:
+            try:
                 general_message = json["message"]
-            else:
-                general_message = f"HTTP Error {resp.status_code}"
+            except KeyError:
+                general_message = f"HTTP Error. Unable to fetch. {resp.status_code}"
 
-            if json["detail"]:
-                server_message = json["detail"]
-            else:
+            try:
+                if json["detail"]:
+                    server_message = json["detail"]
+                else:
+                    server_message = {"message":resp.text}
+            except KeyError:
                 server_message = {"message":resp.text}
+
+            try:
+                if json["url"]:
+                    res_url = json["url"]
+            except KeyError:
+                res_url = url
+
             raise OrientatiException(message=general_message, details=server_message,
-                                      url=url, status_code=resp.status_code)
+                                      url=res_url, status_code=resp.status_code)
 
         json_data = None
         try:

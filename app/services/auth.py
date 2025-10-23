@@ -79,13 +79,13 @@ async def create_access_token(data: dict, expire_minutes: int = settings.ACCESS_
         if expire_minutes:
             params.add_param("expires_in", expire_minutes)
 
-        response = await send_request(
+        json_data = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
             method=HttpMethod.POST,
             endpoint="/token/create",
             _params=params
         )
-        return response.data
+        return json_data
     except OrientatiException as e:
         raise e
 
@@ -107,13 +107,13 @@ async def create_refresh_token(data: dict, expire_days: int = settings.REFRESH_T
         if expire_days:
             params.add_param("expires_in", expire_days * 24 * 60)  # Converti giorni in minuti
 
-        response = await send_request(
+        json_data = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
             method=HttpMethod.POST,
             endpoint="/token/create",
             _params=params
         )
-        return response.data
+        return json_data
     except OrientatiException as e:
         raise e
 
@@ -132,13 +132,13 @@ async def create_new_user(data: dict) -> dict:
     """
     try:
         params = HttpParams(data)
-        response = await send_request(
+        json_data = await send_request(
             url=HttpUrl.USERS_SERVICE,
             method=HttpMethod.POST,
             endpoint="/users/",
             _params=params
         )
-        return response.data
+        return json_data
     except OrientatiException as e:
         raise e
 
@@ -146,13 +146,13 @@ async def create_new_user(data: dict) -> dict:
 async def verify_token(token: str) -> dict:
     try:
         params = HttpParams({"token": token})
-        response = await send_request(
+        json_data = await send_request(
             url=HttpUrl.TOKEN_SERVICE,
             method=HttpMethod.POST,
             endpoint="/token/verify",
             _params=params
         )
-        return response.data
+        return json_data
     except OrientatiException as e:
         raise e
 

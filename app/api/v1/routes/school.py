@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi import Query
 
 from app.schemas.school import SchoolsList, SchoolBase
@@ -46,8 +47,14 @@ async def get_schools(
         )
 
     except OrientatiException as e:
-        raise HTTPException(status_code=e.status_code,
-                            detail={"message": e.message, "details": e.details, "url": e.url})
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
 
 
 @router.get("/{school_id}", response_model=SchoolBase)
@@ -74,6 +81,12 @@ async def get_school(school_id: int):
 
 
     except OrientatiException as e:
-        raise HTTPException(status_code=e.status_code,
-                            detail={"message": e.message, "details": e.details, "url": e.url})
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
 

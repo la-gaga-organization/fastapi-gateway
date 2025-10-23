@@ -57,7 +57,7 @@ async def get_schools(
             _params=HttpParams(params)
         )
 
-        return SchoolsList(**response.data)
+        return SchoolsList(**response)
 
     except OrientatiException as e:
         raise e

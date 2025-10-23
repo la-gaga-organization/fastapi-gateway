@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from app.core.logging import get_logger
 from app.schemas.users import ChangePasswordRequest, ChangePasswordResponse, UpdateUserRequest, DeleteUserResponse
@@ -35,8 +36,14 @@ async def change_password(passwords: ChangePasswordRequest, request: Request):
                 url="users/change_password"
             )
     except OrientatiException as e:
-        raise HTTPException(status_code=e.status_code,
-                            detail={"message": e.message, "details": e.details, "url": e.url})
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
 
 
 @router.patch("/", response_model=UpdateUserRequest)
@@ -54,8 +61,14 @@ async def update_user_self(new_data: UpdateUserRequest, request: Request):
         payload = await auth.verify_token(token)
         return await users.update_user(payload["user_id"], new_data)
     except OrientatiException as e:
-        raise HTTPException(status_code=e.status_code,
-                            detail={"message": e.message, "details": e.details, "url": e.url})
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
 
 
 @router.patch("/{user_id}", response_model=UpdateUserRequest)
@@ -74,8 +87,14 @@ async def update_user(user_id: int, new_data: UpdateUserRequest, request: Reques
         await auth.verify_token(token)
         return await users.update_user(user_id, new_data)
     except OrientatiException as e:
-        raise HTTPException(status_code=e.status_code,
-                            detail={"message": e.message, "details": e.details, "url": e.url})
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
 
 
 @router.delete("/{user_id}", response_model=DeleteUserResponse)
@@ -94,8 +113,14 @@ async def delete_user(user_id: int, request: Request):
         await auth.verify_token(token)
         return await users.delete_user(user_id)
     except OrientatiException as e:
-        raise HTTPException(status_code=e.status_code,
-                            detail={"message": e.message, "details": e.details, "url": e.url})
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
 
 # @router.get("/testrabbit")
 # async def test_rabbitmq(request: Request):
