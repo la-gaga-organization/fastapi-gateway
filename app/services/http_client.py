@@ -182,8 +182,8 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                 general_message = f"HTTP Error. Unable to fetch. {resp.status_code}"
 
             try:
-                if json["detail"]:
-                    server_message = json["detail"]
+                if json["details"]:
+                    server_message = json["details"]
                 else:
                     server_message = {"message":resp.text}
             except KeyError:
