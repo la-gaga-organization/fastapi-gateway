@@ -202,7 +202,7 @@ async def create_user_session_and_tokens(user: User) -> TokenResponse:
     db.commit()
     db.refresh(db_refresh_token)
 
-    return TokenResponse(status_code=HttpCodes.CREATED,access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(status_code=HttpCodes.CREATED.value,access_token=access_token, refresh_token=refresh_token)
 
 
 async def login(user_login: UserLogin) -> TokenResponse:
@@ -282,7 +282,7 @@ async def refresh_token(refresh_token: TokenRequest) -> TokenResponse:
         db.commit()
         db.refresh(db_refresh_token)
 
-        return TokenResponse(status_code=HttpCodes.CREATED,access_token=access_token, refresh_token=refresh_token)
+        return TokenResponse(status_code=HttpCodes.CREATED.value,access_token=access_token, refresh_token=refresh_token)
     except (InvalidTokenException, OrientatiException) as e:
         raise e
     except Exception as e:
