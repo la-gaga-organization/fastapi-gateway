@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
 from fastapi import Query
+from fastapi.responses import JSONResponse
 
-from app.schemas.school import SchoolsList, SchoolBase
+from app.schemas.school import SchoolsList, SchoolResponse, SchoolCreate
 from app.services import school as school_service
 from app.services.http_client import OrientatiException
 
@@ -57,7 +57,7 @@ async def get_schools(
         )
 
 
-@router.get("/{school_id}", response_model=SchoolBase)
+@router.get("/{school_id}", response_model=SchoolResponse)
 async def get_school(school_id: int):
     """
     Recupera i dettagli di una scuola specifica per ID.
@@ -90,3 +90,20 @@ async def get_school(school_id: int):
             }
         )
 
+
+@router.post("/", response_model=SchoolResponse, status_code=201)
+async def post_school(school: SchoolCreate):
+    """
+    Crea una nuova scuola.
+
+    Args:
+        school (SchoolCreate): Dati della scuola da creare
+
+    Returns:
+        dict: Dettagli della scuola creata
+    """
+    try:
+        return await school_service.create_school(school)
+    except OrientatiException as e:
+        raise HTTPException(status_code=e.status_code,
+                            detail={"message": e.message, "details": e.details, "url": e.url})

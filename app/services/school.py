@@ -1,7 +1,7 @@
 from typing import Optional
 
 from app.core.logging import get_logger
-from app.schemas.school import SchoolsList
+from app.schemas.school import SchoolsList, SchoolCreate
 from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request
 
 logger = get_logger(__name__)
@@ -80,6 +80,34 @@ async def get_school_by_id(school_id: int):
             method=HttpMethod.GET,
             url=HttpUrl.SCHOOLS_SERVICE,
             endpoint=f"/schools/{school_id}"
+        )
+
+        return response
+
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url="/auth/register", exc=e)
+
+
+async def create_school(school: SchoolCreate):
+    """
+    Crea una nuova scuola.
+
+    Args:
+        school (SchoolCreate): Dati della scuola da creare.
+
+    Returns:
+        dict: Dettagli della scuola creata.
+    """
+    try:
+        params = school.model_dump()
+        
+        response = await send_request(
+            method=HttpMethod.POST,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint="/schools",
+            _params=HttpParams(params)
         )
 
         return response
