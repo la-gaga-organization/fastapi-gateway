@@ -141,3 +141,26 @@ async def delete_materia(materia_id: int):
                 "url": e.url
             }
         )
+
+
+@router.post("/link-indirizzo/{materia_id}/{indirizzo_id}")
+async def link_materia_to_indirizzo(materia_id: int, indirizzo_id:
+int):
+    """
+    Collega una materia a un indirizzo di studio.
+
+    Args:
+        materia_id (int): ID della materia da collegare
+        indirizzo_id (int): ID dell'indirizzo di studio a cui collegare la materia
+    """
+    try:
+        return await materie_service.link_materia_to_indirizzo(materia_id, indirizzo_id)
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
