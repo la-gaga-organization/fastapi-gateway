@@ -133,3 +133,28 @@ async def put_school(school_id: int, school: SchoolUpdate):
                 "url": e.url
             }
         )
+
+
+@router.delete("/{school_id}", response_model=dict)
+async def delete_school(school_id: int):
+    """
+    Elimina una scuola esistente.
+
+    Args:
+        school_id (int): ID della scuola da eliminare
+
+    Returns:
+        dict: Dettagli della scuola eliminata
+    """
+    try:
+        return await school_service.delete_school(school_id)
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
+   

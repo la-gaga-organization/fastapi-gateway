@@ -165,7 +165,7 @@ async def send_request(url: HttpUrl, method: HttpMethod, endpoint: str, _params:
                 case HttpMethod.PUT:
                     resp = await client.put(url, headers=headers, json=params)
                 case HttpMethod.DELETE:
-                    resp = await client.delete(url, headers=headers, json=params)
+                    resp = await client.delete(url, headers=headers)
                 case HttpMethod.PATCH:
                     resp = await client.patch(url, headers=headers, json=params)
                 case _:

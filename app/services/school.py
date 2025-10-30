@@ -145,3 +145,25 @@ async def update_school(school_id, school) -> SchoolResponse:
         raise e
     except Exception as e:
         raise OrientatiException(url="/auth/register", exc=e)
+
+
+async def delete_school(school_id):
+    """
+    Elimina una scuola esistente.
+
+    Args:
+        school_id (int): ID della scuola da eliminare.
+
+    Returns:
+        None
+    """
+    try:
+        return await send_request(
+            method=HttpMethod.DELETE,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint=f"/schools/{school_id}"
+        )
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url="/auth/register", exc=e)
