@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tracemalloc
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -12,6 +13,8 @@ from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.db.base import import_models
 from app.services import broker, users as users_service
+
+tracemalloc.start(10)  # Avvio il tracciamento della memoria con 10 frame di profondità
 
 import_models()  # Importo i modelli perché siano disponibili per le relazioni SQLAlchemy
 

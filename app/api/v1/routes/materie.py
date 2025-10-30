@@ -117,3 +117,27 @@ async def put_materia(materia_id: int, materia: MateriaUpdate):
                 "url": e.url
             }
         )
+
+
+@router.delete("/{materia_id}", response_model=dict)
+async def delete_materia(materia_id: int):
+    """
+    Elimina una materia esistente.
+
+    Args:
+        materia_id (int): ID della materia da eliminare
+
+    Returns:
+        MateriaResponse: Dettagli della materia eliminata
+    """
+    try:
+        return await materie_service.delete_materia(materia_id)
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )

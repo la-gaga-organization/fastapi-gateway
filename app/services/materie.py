@@ -107,3 +107,22 @@ async def put_materia(materia_id: int, materia: MateriaUpdate) -> MateriaRespons
         raise e
     except Exception as e:
         raise OrientatiException(url=f"/materie/put/{materia_id}", exc=e)
+
+
+async def delete_materia(materia_id: int):
+    """
+    Elimina una materia esistente.
+    Args:
+        materia_id (int): ID della materia da eliminare
+    """
+    try:
+        response = await send_request(
+            method=HttpMethod.DELETE,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint=f"/materie/{materia_id}"
+        )
+        return response
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url=f"/materie/delete/{materia_id}", exc=e)
