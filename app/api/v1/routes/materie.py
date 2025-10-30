@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from fastapi import Query
 from fastapi.responses import JSONResponse
 
-from app.schemas.materia import MateriaList, MateriaResponse, MateriaCreate
+from app.schemas.materia import MateriaList, MateriaResponse, MateriaCreate, MateriaUpdate
 from app.services import materie as materie_service
 from app.services.http_client import OrientatiException
 
@@ -83,6 +83,31 @@ async def post_materia(materia: MateriaCreate):
     """
     try:
         return await materie_service.post_materia(materia)
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
+
+
+@router.put("/{materia_id}", response_model=MateriaResponse)
+async def put_materia(materia_id: int, materia: MateriaUpdate):
+    """
+    Aggiorna i dettagli di una materia esistente.
+
+    Args:
+        materia_id (int): ID della materia da aggiornare
+        materia (MateriaUpdate): Dati aggiornati della materia
+
+    Returns:
+        MateriaResponse: Dettagli della materia aggiornata
+    """
+    try:
+        return await materie_service.put_materia(materia_id, materia)
     except OrientatiException as e:
         return JSONResponse(
             status_code=e.status_code,
