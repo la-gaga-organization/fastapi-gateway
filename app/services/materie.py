@@ -1,5 +1,5 @@
 from app.core.logging import get_logger
-from app.schemas.materia import MateriaList
+from app.schemas.materia import MateriaList, MateriaResponse, MateriaCreate
 from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request
 
 logger = get_logger(__name__)
@@ -62,3 +62,25 @@ async def get_materia_by_id(materia_id: int):
         raise e
     except Exception as e:
         raise OrientatiException(url=f"/materie/{materia_id}", exc=e)
+
+
+async def post_materia(materia: MateriaCreate) -> MateriaResponse:
+    """
+    Crea una nuova materia.
+    Args:
+        materia (MateriaCreate): Dati della materia da creare
+    Returns:
+        MateriaResponse: Dettagli della materia creata
+    """
+    try:
+        response = await send_request(
+            method=HttpMethod.POST,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint="/materie",
+            _params=HttpParams(materia.model_dump())
+        )
+        return MateriaResponse(**response)
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url="/materie/post", exc=e)
