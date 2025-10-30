@@ -151,3 +151,28 @@ async def link_materia_to_indirizzo(materia_id: int, indirizzo_id: int) -> dict:
         raise e
     except Exception as e:
         raise OrientatiException(url="/materie/link_indirizzo", exc=e)
+
+
+async def unlink_materia_from_indirizzo(materia_id: int, indirizzo_id: int):
+    """
+    Scollega una materia da un indirizzo di studio.
+    Args:
+        materia_id (int): ID della materia da scollegare
+        indirizzo_id (int): ID dell'indirizzo di studio da cui scollegare la materia
+    Returns:
+        dict: Dettagli del collegamento rimosso
+    """
+    try:
+
+        response = await send_request(
+            method=HttpMethod.DELETE,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint=f"/materie/unlink-indirizzo/{materia_id}/{indirizzo_id}"
+        )
+
+        return response
+
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url="/materie/unlink_indirizzo", exc=e)

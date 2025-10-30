@@ -164,3 +164,26 @@ int):
                 "url": e.url
             }
         )
+
+
+@router.delete("/unlink-indirizzo/{materia_id}/{indirizzo_id}")
+async def unlink_materia_from_indirizzo(materia_id: int, indirizzo_id: int):
+    """
+    Scollega una materia da un indirizzo di studio.
+
+    Args:
+        materia_id (int): ID della materia da scollegare
+        indirizzo_id (int): ID dell'indirizzo di studio da cui scollegare la materia
+    """
+    try:
+        return await materie_service.unlink_materia_from_indirizzo(materia_id, indirizzo_id)
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
+   
