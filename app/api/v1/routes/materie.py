@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+from typing import Optional
+
+from fastapi import APIRouter
+from fastapi import Query
+from fastapi.responses import JSONResponse
+
+from app.schemas.materia import MateriaList, MateriaResponse
+from app.services import materie as materie_service
+from app.services.http_client import OrientatiException
+
+router = APIRouter()
+
+
+@router.get("/", response_model=MateriaList)
+async def get_materie(
+        limit: int = Query(default=10, ge=1, le=100, description="Numero di materie da restituire (1-100)"),
+        offset: int = Query(default=0, ge=0, description="Numero di materie da saltare per la paginazione"),
+        search: Optional[str] = Query(default=None, description="Termine di ricerca per filtrare le materie per nome"),
+        sort_by: str = Query(default="name", description="Campo per ordinamento (es. nome)"),
+        order: str = Query(default="asc", regex="^(asc|desc)$", description="Ordine: asc o desc")
+):
+    """
+    Recupera la lista delle materie, con opzioni di paginazione e filtro.
+
+    Returns:
+        MateriaList: Lista delle materie con metadati di paginazione
+    """
+    try:
+        return await materie_service.get_materie(
+            limit=limit,
+            offset=offset,
+            search=search,
+            sort_by=sort_by,
+            order=order
+        )
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )
+
+
+@router.get("/{materia_id}", response_model=MateriaResponse)
+async def get_materia_by_id(materia_id: int):
+    """
+    Recupera i dettagli di una materia dato il suo ID.
+
+    Args:
+        materia_id (int): ID della materia da recuperare
+
+    Returns:
+        MateriaResponse: Dettagli della materia
+    """
+    try:
+        return await materie_service.get_materia_by_id(materia_id)
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )

@@ -1,0 +1,64 @@
+from app.core.logging import get_logger
+from app.schemas.materia import MateriaList
+from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request
+
+logger = get_logger(__name__)
+
+
+async def get_materie(limit, offset, search, sort_by, order) -> MateriaList:
+    """
+    Recupera la lista delle materie con opzioni di paginazione e filtro.
+    Args:
+        limit (int): Numero massimo di materie da restituire.
+        offset (int): Numero di materie da saltare per la paginazione.
+        search (str | None): Termine di ricerca per filtrare le materie per nome.
+        sort_by (str | None): Campo per ordinamento (es. nome).
+        order (str | None): Ordine: 'asc' o 'desc'.
+    Returns:
+        MateriaList: Lista delle materie con metadati di paginazione.
+    """
+    try:
+        params = {
+            "limit": limit,
+            "offset": offset,
+            "search": search,
+            "sort_by": sort_by,
+            "order": order
+        }
+        # Rimuovo i parametri None
+        params = {k: v for k, v in params.items() if v is not None}
+
+        response = await send_request(
+            method=HttpMethod.GET,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint="/materie",
+            _params=HttpParams(params)
+        )
+
+        return MateriaList(**response)
+
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url="/materie/get", exc=e)
+
+
+async def get_materia_by_id(materia_id: int):
+    """
+    Recupera i dettagli di una materia dato il suo ID.
+    Args:
+        materia_id (int): ID della materia da recuperare
+    Returns:
+        MateriaResponse: Dettagli della materia
+    """
+    try:
+        response = await send_request(
+            method=HttpMethod.GET,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint=f"/materie/{materia_id}"
+        )
+        return response
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url=f"/materie/{materia_id}", exc=e)
