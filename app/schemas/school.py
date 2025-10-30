@@ -20,8 +20,6 @@ class SchoolBase(BaseModel):
     telefono_contatto: str
     sito_web: str | None = None
     descrizione: str | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
 
 
 class SchoolResponse(SchoolBase):
@@ -29,6 +27,8 @@ class SchoolResponse(SchoolBase):
     provincia: str
     codice_postale: str
     indirizzi_scuola: List[SchoolAddress] = []
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class SchoolCreate(SchoolBase):

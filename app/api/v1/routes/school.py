@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Query
 from fastapi.responses import JSONResponse
 
-from app.schemas.school import SchoolsList, SchoolResponse, SchoolCreate
+from app.schemas.school import SchoolsList, SchoolResponse, SchoolCreate, SchoolUpdate
 from app.services import school as school_service
 from app.services.http_client import OrientatiException
 
@@ -107,3 +107,29 @@ async def post_school(school: SchoolCreate):
     except OrientatiException as e:
         raise HTTPException(status_code=e.status_code,
                             detail={"message": e.message, "details": e.details, "url": e.url})
+
+
+@router.put("/{school_id}", response_model=SchoolResponse)
+async def put_school(school_id: int, school: SchoolUpdate):
+    """
+    Aggiorna i dettagli di una scuola esistente.
+
+    Args:
+        school_id (int): ID della scuola da aggiornare
+        school (SchoolUpdate): Dati aggiornati della scuola
+
+    Returns:
+        dict: Dettagli della scuola aggiornata
+    """
+    try:
+        updated_school = await school_service.update_school(school_id, school)
+        return updated_school
+    except OrientatiException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.message,
+                "details": e.details,
+                "url": e.url
+            }
+        )

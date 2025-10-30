@@ -1,7 +1,7 @@
 from typing import Optional
 
 from app.core.logging import get_logger
-from app.schemas.school import SchoolsList, SchoolCreate
+from app.schemas.school import SchoolsList, SchoolCreate, SchoolResponse
 from app.services.http_client import OrientatiException, HttpMethod, HttpUrl, HttpParams, send_request
 
 logger = get_logger(__name__)
@@ -90,7 +90,7 @@ async def get_school_by_id(school_id: int):
         raise OrientatiException(url="/auth/register", exc=e)
 
 
-async def create_school(school: SchoolCreate):
+async def create_school(school: SchoolCreate) -> SchoolResponse:
     """
     Crea una nuova scuola.
 
@@ -102,7 +102,7 @@ async def create_school(school: SchoolCreate):
     """
     try:
         params = school.model_dump()
-        
+
         response = await send_request(
             method=HttpMethod.POST,
             url=HttpUrl.SCHOOLS_SERVICE,
@@ -110,7 +110,36 @@ async def create_school(school: SchoolCreate):
             _params=HttpParams(params)
         )
 
-        return response
+        return SchoolResponse(**response)
+
+    except OrientatiException as e:
+        raise e
+    except Exception as e:
+        raise OrientatiException(url="/auth/register", exc=e)
+
+
+async def update_school(school_id, school) -> SchoolResponse:
+    """
+    Aggiorna i dettagli di una scuola esistente.
+
+    Args:
+        school_id (int): ID della scuola da aggiornare.
+        school (SchoolCreate): Dati aggiornati della scuola.
+
+    Returns:
+        dict: Dettagli della scuola aggiornata.
+    """
+    try:
+        params = school.model_dump()
+
+        response = await send_request(
+            method=HttpMethod.PUT,
+            url=HttpUrl.SCHOOLS_SERVICE,
+            endpoint=f"/schools/{school_id}",
+            _params=HttpParams(params)
+        )
+
+        return SchoolResponse(**response)
 
     except OrientatiException as e:
         raise e
