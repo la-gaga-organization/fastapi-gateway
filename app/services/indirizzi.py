@@ -76,7 +76,7 @@ async def post_indirizzo(indirizzo_data: IndirizzoCreate) -> IndirizzoResponse:
             method=HttpMethod.POST,
             url=HttpUrl.SCHOOLS_SERVICE,
             endpoint="/indirizzi",
-            _params=indirizzo_data.model_dump()
+            _params=HttpParams(indirizzo_data.model_dump())
         )
 
         return IndirizzoResponse(**response)
@@ -101,7 +101,7 @@ async def put_indirizzo(indirizzo_id: int, indirizzo_data: IndirizzoUpdate) -> I
             method=HttpMethod.PUT,
             url=HttpUrl.SCHOOLS_SERVICE,
             endpoint=f"/indirizzi/{indirizzo_id}",
-            _params=indirizzo_data.model_dump()
+            _params=HttpParams(indirizzo_data.model_dump())
         )
 
         return IndirizzoResponse(**response)
