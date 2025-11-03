@@ -26,7 +26,7 @@ async def get_indirizzi(
     Recupera la lista delle materie, con opzioni di paginazione e filtro.
 
     Returns:
-        MateriaList: Lista degli indirizzi con metadati di paginazione
+        IndirizzoList: Lista degli indirizzi con metadati di paginazione
     """
     try:
         return await indirizzi_service.get_indirizzi(
@@ -143,4 +143,3 @@ async def put_indirizzo(indirizzo_id: int, indirizzo: IndirizzoUpdate):
                 "url": e.url
             }
         )
-
